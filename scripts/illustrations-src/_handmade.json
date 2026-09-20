@@ -1,0 +1,14 @@
+{
+  "stretch": {
+    "vb": "0 0 150 110",
+    "body": "<rect x=\"8\" y=\"99\" width=\"134\" height=\"3\" rx=\"1.5\" style=\"fill:var(--il-floor)\"/><path d=\"M75 44 L75 70\" style=\"stroke:var(--il-p);stroke-width:9;stroke-linecap:round;fill:none\"/><path d=\"M75 70 L67 97\" style=\"stroke:var(--il-p2);stroke-width:6;stroke-linecap:round;fill:none\"/><path d=\"M75 70 L84 97\" style=\"stroke:var(--il-p2);stroke-width:6;stroke-linecap:round;fill:none\"/><path d=\"M75 47 L64 14\" style=\"stroke:var(--il-p);stroke-width:5;stroke-linecap:round;fill:none\"/><path d=\"M75 47 L86 14\" style=\"stroke:var(--il-p);stroke-width:5;stroke-linecap:round;fill:none\"/><circle cx=\"75\" cy=\"32\" r=\"7\" style=\"fill:var(--il-p)\"/><path d=\"M20 60 h14 M116 60 h14\" style=\"stroke:var(--il-t);stroke-width:3;stroke-linecap:round;fill:none\"/>"
+  },
+  "mobility": {
+    "vb": "0 0 150 110",
+    "body": "<rect x=\"14\" y=\"96\" width=\"122\" height=\"5\" rx=\"2.5\" style=\"fill:var(--il-mat)\"/><path d=\"M66 60 L60 90\" style=\"stroke:var(--il-p2);stroke-width:6;stroke-linecap:round;fill:none\"/><path d=\"M60 90 L36 94\" style=\"stroke:var(--il-p2);stroke-width:6;stroke-linecap:round;fill:none\"/><path d=\"M68 62 L94 66 L96 94\" style=\"stroke:var(--il-p);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none\"/><path d=\"M68 60 L70 40\" style=\"stroke:var(--il-p);stroke-width:9;stroke-linecap:round;fill:none\"/><path d=\"M70 44 L92 60\" style=\"stroke:var(--il-p2);stroke-width:5;stroke-linecap:round;fill:none\"/><circle cx=\"72\" cy=\"27\" r=\"7\" style=\"fill:var(--il-p)\"/><path d=\"M104 44 l8 -8 m0 0 l-1 8 m1 -8 l-8 1\" style=\"stroke:var(--il-t);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none\"/>"
+  },
+  "recovery": {
+    "vb": "0 0 150 110",
+    "body": "<rect x=\"8\" y=\"99\" width=\"134\" height=\"3\" rx=\"1.5\" style=\"fill:var(--il-floor)\"/><path d=\"M74 44 L77 70\" style=\"stroke:var(--il-p);stroke-width:9;stroke-linecap:round;fill:none\"/><path d=\"M77 70 L64 97\" style=\"stroke:var(--il-p2);stroke-width:6;stroke-linecap:round;fill:none\"/><path d=\"M77 70 L92 96\" style=\"stroke:var(--il-p);stroke-width:6;stroke-linecap:round;fill:none\"/><path d=\"M74 48 L62 64\" style=\"stroke:var(--il-p2);stroke-width:5;stroke-linecap:round;fill:none\"/><path d=\"M74 48 L88 62\" style=\"stroke:var(--il-p);stroke-width:5;stroke-linecap:round;fill:none\"/><circle cx=\"73\" cy=\"31\" r=\"7\" style=\"fill:var(--il-p)\"/><path d=\"M18 88 h10 M112 88 h14 M122 78 h10\" style=\"stroke:var(--il-t);stroke-width:3;stroke-linecap:round;fill:none\"/>"
+  }
+}

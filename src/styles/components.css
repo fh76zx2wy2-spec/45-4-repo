@@ -1,0 +1,107 @@
+/* ============================ الشعار والشاشة الأولى ============================ */
+.logo { display: inline-flex; flex-direction: column; align-items: center; gap: 10px; line-height: 1; }
+.logo-mark {
+  display: inline-flex; align-items: baseline; direction: ltr;
+  font-family: var(--font-display); font-weight: 900;
+  font-size: calc(var(--logo, 44px) * .78); line-height: 1; letter-spacing: -.02em;
+}
+.logo-mark .l45 { color: var(--ink); }
+.logo-mark .lslash { color: var(--hot); font-weight: 500; margin: 0 .04em; transform: skewX(-6deg); display: inline-block; }
+.logo-mark .l4 { color: var(--cold); }
+.logo-sub { font-size: calc(var(--logo, 44px) * .17 + 5px); color: var(--muted); font-weight: 500; letter-spacing: .06em; }
+
+.splash { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+.splash .logo { animation: floaty 2.4s ease-in-out infinite; }
+
+.glow { position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; opacity: .5; }
+.glow-a { width: 300px; height: 300px; background: color-mix(in srgb, var(--hot) 55%, transparent); top: -90px; inset-inline-start: -110px; }
+.glow-b { width: 260px; height: 260px; background: color-mix(in srgb, var(--cold) 45%, transparent); bottom: 40px; inset-inline-end: -100px; }
+:root[data-theme='dark'] .glow { opacity: .28; }
+
+.login { min-height: 100dvh; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: calc(var(--safe-t) + 24px) var(--gutter) calc(var(--safe-b) + 12px); }
+.login-in { position: relative; z-index: 1; width: 100%; max-width: 400px; margin: auto; padding: 24px 0; }
+.login-brand { display: flex; justify-content: center; margin-bottom: 34px; }
+.login-form { gap: 18px; }
+.login-hello { font-size: 30px; text-align: center; }
+.login-note { text-align: center; font-size: 13.5px; line-height: 1.8; }
+.code-input { letter-spacing: .5em; text-indent: .5em; font-size: 34px; }
+.login .footer { position: relative; z-index: 1; }
+
+/* ============================ التذييل ============================ */
+.footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 26px 0 6px; line-height: 1.6; }
+
+/* ============================ رأس الصفحة الداخلية ============================ */
+.pagehead { display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; gap: 8px; margin-bottom: 14px; min-height: 52px; }
+.pagehead h1 { font-size: 24px; }
+.pagehead .eyebrow { margin-top: 1px; }
+
+/* ============================ عدّاد بأزرار ============================ */
+.stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stepper-v { flex: 1; text-align: center; font-size: 30px; line-height: 1.1; }
+.stepper-v .num { font-weight: 700; }
+.stepper .icon-btn { width: 52px; height: 52px; }
+
+/* ============================ علامة ✓ ============================ */
+.checkmark .ck-ring { stroke-dashoffset: 340; animation: drawRing .8s var(--ease) .1s forwards; }
+.checkmark .ck-tick { stroke-dashoffset: 60; animation: drawCheck .5s var(--ease) .55s forwards; }
+
+/* ============================ التذكرة (بطاقة تمرين اليوم) ============================ */
+.ticket { position: relative; border-radius: var(--r-xl); overflow: hidden; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-2); }
+.ticket-top {
+  position: relative; color: #fff; padding: 22px 22px 34px;
+  background: linear-gradient(140deg, #A85F2B 0%, #C67A3D 52%, #B4682F 100%);
+  overflow: hidden;
+}
+:root[data-theme='dark'] .ticket-top { background: linear-gradient(140deg, #7C4520 0%, #A65F2B 55%, #8A4C22 100%); }
+.ticket-top.cold { background: linear-gradient(140deg, #1C4B42 0%, #2E6F63 60%, #245C52 100%); }
+.ticket-top::after {
+  content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 14px;
+  background-image: radial-gradient(circle at 10px 14px, transparent 7px, var(--surface) 7.5px);
+  background-size: 20px 14px; background-repeat: repeat-x;
+}
+.ticket-blob { position: absolute; width: 220px; height: 220px; border-radius: 50%; background: rgba(255, 255, 255, .09); inset-inline-end: -70px; top: -80px; pointer-events: none; }
+.ticket-eyebrow { font-size: 13px; letter-spacing: .04em; opacity: .85; font-weight: 500; }
+.ticket-title { font-size: 30px; margin-top: 4px; line-height: 1.25; color: #fff; }
+.ticket-sub { font-size: 14.5px; opacity: .88; margin-top: 2px; }
+.ticket-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.ticket-ill { display: flex; gap: 10px; margin-top: 18px; }
+.ticket-ill .ill { flex: 1; background: rgba(255, 253, 249, .94); border-radius: 16px; max-height: 96px; }
+:root[data-theme='dark'] .ticket-ill .ill { background: rgba(255, 253, 249, .1); }
+.ticket-stripe { height: 14px; margin-top: 18px; color: #fff; opacity: .4;
+  background-image: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px, currentColor 5px 6px, transparent 6px 11px, currentColor 11px 13px, transparent 13px 18px); }
+.ticket-bottom { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.ticket-links { display: flex; justify-content: center; gap: 4px 18px; flex-wrap: wrap; }
+
+/* ============================ رقائق ومؤشرات ============================ */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-weight: 500; font-size: 14.5px; transition: all .2s; }
+.chip-btn.on { background: var(--hot-soft); border-color: var(--hot); color: var(--hot-ink); font-weight: 700; }
+.chip-btn svg { width: 18px; height: 18px; }
+.stat-line { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+.stat-line svg { width: 20px; height: 20px; color: var(--hot); flex: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cold); flex: none; }
+
+/* ============================ حلقة تقدّم ============================ */
+.ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.ring svg { transform: rotate(-90deg); }
+.ring .ring-bg { stroke: var(--line); }
+.ring .ring-fg { stroke: var(--hot); stroke-linecap: round; transition: stroke-dashoffset .5s linear; }
+.ring .ring-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+
+/* ============================ الشريط العائم للتشغيل ============================ */
+.mini { position: fixed; inset-inline: 0; bottom: calc(var(--nav-h) + var(--safe-b)); z-index: 45; padding: 0 10px 8px; pointer-events: none; }
+.mini-in { pointer-events: auto; max-width: calc(var(--maxw) - 20px); margin-inline: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-2); overflow: hidden; }
+.mini-bar { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; }
+.mini-bar .t { font-weight: 700; font-size: 14.5px; line-height: 1.3; }
+.mini-bar .s { font-size: 12px; color: var(--muted); }
+.mini-frame { position: relative; aspect-ratio: 16/9; background: #000; }
+.mini-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.mini.collapsed .mini-frame { height: 0; aspect-ratio: auto; overflow: hidden; position: absolute; opacity: 0; pointer-events: none; }
+.mini-in .icon-btn { width: 40px; height: 40px; }
+
+/* ============================ متفرقات ============================ */
+.divider { height: 1px; background: var(--line-2); margin: 4px 0; }
+.note-box { border-radius: var(--r-md); padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; color: var(--ink-2); line-height: 1.85; }
+.note-box.hot { background: var(--hot-soft); border-color: transparent; color: var(--hot-ink); }
+.note-box.cold { background: var(--cold-soft); border-color: transparent; color: var(--cold-ink); }
+.badge-guide { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--cold-soft); color: var(--cold-ink); }

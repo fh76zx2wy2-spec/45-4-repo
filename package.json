@@ -1,0 +1,32 @@
+{
+  "name": "45-4",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "45/4 — رفيقك الشخصي في النادي",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "vitest run",
+    "gen:illustrations": "node scripts/build-illustrations.mjs",
+    "gen:icons": "python3 scripts/make-icons.py",
+    "db:test": "node scripts/test-migrations.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.6"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "^2.1.9"
+  }
+}
