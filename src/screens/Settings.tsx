@@ -159,7 +159,7 @@ export default function Settings() {
         <p className="muted">
           {pending > 0
             ? `لديك ${pending} تغييرًا لم يُرفع بعد. سنحاول رفعه الآن قبل الخروج، وإن لم يتوفر الاتصال ستُحذف من هذا الجهاز.`
-            : 'ستحتاج إلى رمز جديد يصل لبريدك عند الدخول مرة أخرى. بياناتك تبقى محفوظة في حسابك.'}
+            : 'ستدخل مرة أخرى بحساب Google عند الحاجة. بياناتك تبقى محفوظة في حسابك.'}
         </p>
         <button className="btn btn-danger btn-block" onClick={() => void signOut()}>نعم، اخرج</button>
         <button className="btn btn-ghost btn-block" onClick={() => setOutOpen(false)}>إلغاء</button>

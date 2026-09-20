@@ -1,10 +1,12 @@
 /**
- * المصادقة عبر Supabase Auth بالبريد الإلكتروني (رمز OTP أو رابط سحري).
+ * المصادقة عبر Google OAuth فقط (Supabase Auth). لا بريد ولا رمز.
+ * نطلب النطاقات الأساسية فقط (openid email profile) — لا صلاحية لقراءة البريد أو أي خدمة Google أخرى.
  * الجلسة تُحفظ في الجهاز وتُجدَّد تلقائيًا، فيدخل الموقع مباشرة في المرات التالية.
+ * حصر الدخول بحساب المالك يتم في قاعدة البيانات (انظر supabase/migrations/*google_owner_lock.sql).
  * إن انقطع الإنترنت وكانت الجلسة محفوظة، يعمل التطبيق بالبيانات المحلية.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { supabase, supabaseConfigured } from './supabase';
+import { supabase, supabaseConfigured, urlAuthError } from './supabase';
 import { clearStore, initStore } from './store';
 import { startSyncEngine, syncNow } from './sync';
 
@@ -20,8 +22,8 @@ interface AuthCtx {
   user: AuthUser | null;
   configured: boolean;
   offlineSession: boolean;
-  sendCode: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
-  verifyCode: (email: string, code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** يحوّل المتصفح إلى Google؛ لا يعود إلا عند الفشل */
+  signInWithGoogle: () => Promise<{ ok: true } | { ok: false; error: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -37,15 +39,21 @@ function readLastUser(): AuthUser | null {
   }
 }
 
-function arabicAuthError(msg: string): string {
-  const m = msg.toLowerCase();
-  if (m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'محاولات كثيرة. انتظر دقيقة ثم أعد المحاولة.';
-  if (m.includes('expired') || m.includes('invalid') || m.includes('otp')) return 'الرمز غير صحيح أو انتهت صلاحيته. اطلب رمزًا جديدًا.';
-  if (m.includes('signups not allowed') || m.includes('not allowed') || m.includes('database error')) return 'هذا البريد غير مسموح له بالدخول.';
-  if (m.includes('email')) return 'تأكد من كتابة البريد الإلكتروني بشكل صحيح.';
+const DENIED = 'هذا الحساب غير مسموح له بالدخول إلى 45/4. استخدم حساب Google الخاص بصاحب التطبيق.';
+
+export function arabicAuthError(msg: string): string {
+  const m = msg.toLowerCase().replace(/\+/g, ' ');
+  // المشغّل في قاعدة البيانات يرفض إنشاء أي حساب غير المالك → Supabase يعيد «Database error saving new user»
+  if (m.includes('database error') || m.includes('signup_not_allowed') || m.includes('signups not allowed') || m.includes('not allowed') || m.includes('unexpected_failure')) return DENIED;
+  if (m.includes('access_denied') || m.includes('cancel')) return 'أُلغي الدخول. اضغط الزر للمحاولة مرة أخرى.';
+  if (m.includes('rate limit') || m.includes('too many')) return 'محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.';
+  if (m.includes('provider') && m.includes('not')) return 'الدخول عبر Google غير مفعّل بعد في إعدادات Supabase.';
   if (m.includes('fetch') || m.includes('network')) return 'تعذّر الاتصال بالإنترنت. حاول مرة أخرى.';
-  return 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+  return 'تعذّر تسجيل الدخول. حاول مرة أخرى.';
 }
+
+/** رسالة الرفض العائدة من Google/Supabase في العنوان (إن وُجدت) */
+export const initialAuthError: string | null = urlAuthError ? arabicAuthError(urlAuthError) : null;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');
@@ -112,20 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [enter]);
 
-  const sendCode = useCallback<AuthCtx['sendCode']>(async (email) => {
+  const signInWithGoogle = useCallback<AuthCtx['signInWithGoogle']>(async () => {
     if (!supabase) return { ok: false, error: 'الخدمة غير مهيأة بعد.' };
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: true, emailRedirectTo: window.location.origin },
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/',
+        scopes: 'openid email profile', // لا Gmail ولا أي صلاحية إضافية
+        queryParams: { prompt: 'select_account' },
+      },
     });
     return error ? { ok: false, error: arabicAuthError(error.message) } : { ok: true };
-  }, []);
-
-  const verifyCode = useCallback<AuthCtx['verifyCode']>(async (email, code) => {
-    if (!supabase) return { ok: false, error: 'الخدمة غير مهيأة بعد.' };
-    const { data, error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: code.trim(), type: 'email' });
-    if (error || !data.session) return { ok: false, error: arabicAuthError(error?.message ?? 'invalid') };
-    return { ok: true };
   }, []);
 
   const signOut = useCallback(async () => {
@@ -153,8 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const value = useMemo<AuthCtx>(
-    () => ({ status, user, configured: supabaseConfigured, offlineSession, sendCode, verifyCode, signOut }),
-    [status, user, offlineSession, sendCode, verifyCode, signOut],
+    () => ({ status, user, configured: supabaseConfigured, offlineSession, signInWithGoogle, signOut }),
+    [status, user, offlineSession, signInWithGoogle, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

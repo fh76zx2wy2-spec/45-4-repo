@@ -33,12 +33,15 @@ await db.exec(`
   create role anon nologin;
   create role authenticated nologin;
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_app_meta_data jsonb default '{}'::jsonb);
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
   $$;
+  create function auth.jwt() returns jsonb language sql stable as $$
+    select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
+  $$;
   grant usage on schema public, auth to anon, authenticated;
-  grant execute on function auth.uid() to anon, authenticated;
+  grant execute on function auth.uid(), auth.jwt() to anon, authenticated;
 `);
 
 const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
@@ -49,22 +52,33 @@ for (const f of files) {
 }
 console.log('إعادة تطبيقها (يجب أن تنجح بلا أخطاء وبلا فقدان بيانات):');
 
-// ---- مستخدمان ----
+// ---- قفل الدخول: مالك واحد عبر Google ----
 const A = '11111111-1111-1111-1111-111111111111';
 const B = '22222222-2222-2222-2222-222222222222';
-// القفل: أول مستخدم يُقبل، والثاني يُرفض حتى يُدرج بريده
-await db.query(`insert into auth.users (id, email) values ($1, 'a@example.com')`, [A]);
-ok('أول مستخدم مقبول');
-await expectThrows('مستخدم ثانٍ غير مسموح يُرفض', () => db.query(`insert into auth.users (id, email) values ($1, 'b@example.com')`, [B]), 'signup_not_allowed');
-await db.query(`insert into public.allowed_emails (email) values ('b@example.com')`);
-await db.query(`insert into auth.users (id, email) values ($1, 'b@example.com')`, [B]);
-ok('مستخدم ثانٍ بعد إدراج بريده في القائمة المسموحة');
+const EMAILS = { [A]: 'owner@example.com', [B]: 'b@example.com' };
+const G = JSON.stringify({ provider: 'google', providers: ['google'] });
+const mkUser = (id, email, meta = G) => db.query(`insert into auth.users (id, email, raw_app_meta_data) values ($1, $2, $3::jsonb)`, [id, email, meta]);
+
+console.log('قفل الدخول (Google + المالك المحدَّد):');
+await expectThrows('قائمة المالك فارغة → لا أحد يدخل (لا «أول مستخدم = مالك»)', () => mkUser(A, 'owner@example.com'), 'signup_not_allowed');
+await expectThrows('بريد غير صالح لا يُقبل كمالك', () => db.query(`select public.set_owner_email('ليس بريدًا')`), 'invalid_email');
+await db.query(`select public.set_owner_email('  Owner@Example.com ')`);
+const list = (await db.query(`select email from public.allowed_emails`)).rows.map((r) => r.email);
+if (list.length === 1 && list[0] === 'owner@example.com') ok('set_owner_email يخزّن بريدًا واحدًا بأحرف صغيرة');
+else bad('set_owner_email', JSON.stringify(list));
+await expectThrows('حساب المالك بمزوّد البريد/الرمز يُرفض', () => mkUser(A, 'owner@example.com', JSON.stringify({ provider: 'email' })), 'signup_not_allowed');
+await expectThrows('حساب بلا مزوّد يُرفض', () => mkUser(A, 'owner@example.com', '{}'), 'signup_not_allowed');
+await expectThrows('حساب Google آخر (غير المالك) يُرفض', () => mkUser(B, 'b@example.com'), 'signup_not_allowed');
+await expectThrows('حساب بلا بريد يُرفض', () => db.query(`insert into auth.users (id, email, raw_app_meta_data) values ($1, null, $2::jsonb)`, [B, G]), 'signup_not_allowed');
+await mkUser(A, 'Owner@Example.com');
+ok('حساب Google الخاص بالمالك مقبول (مطابقة بلا حساسية لحالة الأحرف)');
 await expectThrows('بريد بأحرف كبيرة في القائمة يُرفض (email = lower(email))', () => db.query(`insert into public.allowed_emails (email) values ('C@Example.com')`));
 
 async function as(uid, fn) {
   await db.exec('begin');
   try {
     await db.query(`select set_config('request.jwt.claim.sub', $1, true)`, [uid ?? '']);
+    await db.query(`select set_config('request.jwt.claims', $1, true)`, [uid ? JSON.stringify({ sub: uid, email: EMAILS[uid], role: 'authenticated' }) : '']);
     await db.exec(uid ? 'set local role authenticated' : 'set local role anon');
     const r = await fn();
     await db.exec('commit');
@@ -74,6 +88,14 @@ async function as(uid, fn) {
     throw e;
   }
 }
+await expectThrows('authenticated لا يستطيع استدعاء set_owner_email', () => as(A, () => db.query(`select public.set_owner_email('x@y.com')`)), 'permission denied');
+await expectThrows('anon لا يستطيع استدعاء set_owner_email', () => as(null, () => db.query(`select public.set_owner_email('x@y.com')`)), 'permission denied');
+await expectThrows('anon لا يستطيع استدعاء is_owner', () => as(null, () => db.query(`select public.is_owner()`)), 'permission denied');
+
+// لاختبار عزل المستخدمين نحتاج مستخدمًا ثانيًا: نُدرجه مؤقتًا في القائمة (بحساب مالك قاعدة البيانات)
+await db.query(`insert into public.allowed_emails (email) values ('b@example.com')`);
+await mkUser(B, 'b@example.com');
+ok('مستخدم ثانٍ لاختبار العزل (أُدرج مؤقتًا)');
 
 const S1 = 'aaaaaaaa-0000-0000-0000-000000000001';
 const E1 = 'aaaaaaaa-0000-0000-0000-0000000000e1';
@@ -132,6 +154,20 @@ await expectThrows('وزن غير معقول يُرفض', () => as(A, () => db.q
 const dm = (await as(A, () => db.query(`select duration_minutes from public.workout_sessions where id = $1`, [S1]))).rows[0].duration_minutes;
 if (dm === 45) ok('عمود duration_minutes المحسوب = 45');
 else bad('duration_minutes', String(dm));
+
+console.log('دفاع RLS: من ليس مالكًا لا يرى ولا يكتب حتى بمستخدم موجود:');
+await db.query(`select public.set_owner_email('owner@example.com')`); // يزيل b من القائمة
+if ((await cnt(A, 'workout_sessions')) === 1) ok('المالك ما زال يرى بياناته');
+else bad('المالك فقد الوصول');
+if ((await cnt(B, 'workout_sessions')) === 0 && (await cnt(B, 'profiles')) === 0) ok('B (مستخدم موجود لكنه ليس المالك) لا يرى شيئًا');
+else bad('B غير المالك رأى بيانات');
+await expectThrows('B غير المالك لا يكتب حتى صفوفه', () => as(B, () => db.query(`insert into public.daily_logs (date, water_cups) values ('2026-09-19', 1)`)));
+await db.query(`update public.allowed_emails set email = 'someone-else@example.com'`);
+if ((await cnt(A, 'workout_sessions')) === 0) ok('تغيير المالك يقطع وصول الحساب القديم فورًا');
+else bad('الحساب القديم ما زال يصل');
+await db.query(`select public.set_owner_email('owner@example.com')`);
+if ((await cnt(A, 'workout_sessions')) === 1) ok('إعادة المالك تعيد الوصول');
+else bad('لم يعد الوصول');
 
 console.log('حذف الحساب يحذف بياناته فقط:');
 await db.exec(`delete from auth.users where id = '${B}'`);

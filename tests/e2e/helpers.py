@@ -15,13 +15,11 @@ def mock(path):
 def launch(p):
     return p.chromium.launch(executable_path=CHROME, args=['--no-sandbox'])
 
-def login(page, email='ziyad@example.com'):
+def login(page):
+    """الدخول بحساب Google (المحاكى في الخادم الوهمي) ثم انتظار الرئيسية"""
     page.goto(BASE + '/')
-    page.wait_for_selector('input[type=email]')
-    page.fill('input[type=email]', email)
-    page.click('button[type=submit]')
-    page.wait_for_selector('.code-input')
-    page.fill('.code-input', '123456')
+    page.wait_for_selector('.google-btn')
+    page.click('.google-btn')
     page.wait_for_selector('.home-hello', timeout=15000)
 
 def overflow(page):

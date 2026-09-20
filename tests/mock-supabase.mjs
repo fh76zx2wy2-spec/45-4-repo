@@ -1,13 +1,16 @@
 /**
  * خادم Supabase وهمي للاختبار المحلي فقط (لا يُشحن مع التطبيق).
- * يحاكي: Auth بالبريد (OTP + تجديد الجلسة + خروج) وREST لجداول التطبيق مع عزل المستخدمين.
- * التشغيل:  node tests/mock-supabase.mjs [port]
+ * يحاكي: Google OAuth عبر Supabase (PKCE: authorize → code → token) + تجديد الجلسة + خروج،
+ * وREST لجداول التطبيق مع عزل المستخدمين وقفل المالك (OWNER_EMAIL).
+ * التشغيل:  OWNER_EMAIL=me@example.com node tests/mock-supabase.mjs [port]
+ * أدوات الاختبار:  /__admin/google?email=x  (حساب Google الذي «يختاره» المستخدم)،
+ *                  /__admin/google?cancel=1 (المستخدم يلغي)،  /__admin/owner?email=x  (تغيير المالك)
  */
 import http from 'node:http';
 import crypto from 'node:crypto';
 
 const PORT = Number(process.argv[2] || 54321);
-const CODE = '123456';
+const OWNER0 = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
 const PK = {
   profiles: ['id'],
   user_settings: ['user_id'],
@@ -18,7 +21,7 @@ const PK = {
   daily_logs: ['user_id', 'date'],
 };
 
-const state = { users: new Map(), tables: Object.fromEntries(Object.keys(PK).map((t) => [t, []])), refresh: new Map(), sends: [], failRest: false, log: [] };
+const state = { users: new Map(), tables: Object.fromEntries(Object.keys(PK).map((t) => [t, []])), refresh: new Map(), codes: new Map(), authorizes: [], google: { email: 'ziyad@example.com', cancel: false }, owner: OWNER0, sends: [], failRest: false, log: [] };
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const uidFor = (email) => {
@@ -38,7 +41,7 @@ function session(email) {
     expires_in: 3600,
     expires_at: exp,
     refresh_token: refresh,
-    user: { id, aud: 'authenticated', role: 'authenticated', email, email_confirmed_at: new Date().toISOString(), app_metadata: { provider: 'email' }, user_metadata: {}, created_at: new Date().toISOString() },
+    user: { id, aud: 'authenticated', role: 'authenticated', email, email_confirmed_at: new Date().toISOString(), app_metadata: { provider: 'google', providers: ['google'] }, user_metadata: { email_verified: true }, created_at: new Date().toISOString() },
   };
 }
 const userFromAuth = (req) => {
@@ -94,12 +97,25 @@ const server = http.createServer(async (req, res) => {
   const path = url.pathname;
 
   /* ---------- أدوات الاختبار ---------- */
-  if (path === '/__admin/state') return send(res, 200, { tables: state.tables, sends: state.sends, users: [...state.users.keys()] });
+  if (path === '/__admin/state') return send(res, 200, { tables: state.tables, sends: state.sends, users: [...state.users.keys()], authorizes: state.authorizes, owner: state.owner, google: state.google });
+  if (path === '/__admin/google') {
+    if (url.searchParams.get('email')) state.google.email = url.searchParams.get('email').toLowerCase();
+    state.google.cancel = url.searchParams.get('cancel') === '1';
+    return send(res, 200, state.google);
+  }
+  if (path === '/__admin/owner') {
+    state.owner = (url.searchParams.get('email') || '').toLowerCase();
+    return send(res, 200, { owner: state.owner });
+  }
   if (path === '/__admin/reset') {
     for (const t of Object.keys(state.tables)) state.tables[t] = [];
     state.users.clear();
     state.refresh.clear();
     state.sends.length = 0;
+    state.codes.clear();
+    state.authorizes.length = 0;
+    state.google = { email: 'ziyad@example.com', cancel: false };
+    state.owner = OWNER0;
     state.failRest = false;
     return send(res, 200, { ok: true });
   }
@@ -109,20 +125,39 @@ const server = http.createServer(async (req, res) => {
   }
 
   /* ---------- Auth ---------- */
-  if (path === '/auth/v1/otp' && req.method === 'POST') {
-    const b = await readBody(req);
-    const email = String(b.email || '').toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(email)) return send(res, 400, { code: 400, error_code: 'validation_failed', msg: 'Unable to validate email address: invalid format' });
-    if (process.env.ONLY_EMAIL && state.users.size > 0 && !state.users.has(email)) return send(res, 500, { code: 500, error_code: 'unexpected_failure', msg: 'Database error saving new user' });
-    state.sends.push({ email, at: Date.now() });
-    return send(res, 200, {});
+  // الدخول بالبريد/الرمز معطّل في هذا المشروع (Google فقط)
+  if (path === '/auth/v1/otp' || path === '/auth/v1/verify' || path === '/auth/v1/signup')
+    return send(res, 422, { code: 422, error_code: 'email_provider_disabled', msg: 'Email logins are disabled' });
+
+  // 1) بداية OAuth: يحاكي Supabase → Google → عودة برمز مؤقت (PKCE)
+  if (path === '/auth/v1/authorize') {
+    const q = Object.fromEntries(url.searchParams);
+    state.authorizes.push(q);
+    if (q.provider !== 'google') return send(res, 400, { code: 400, error_code: 'validation_failed', msg: 'Unsupported provider: provider is not enabled' });
+    const back = new URL(q.redirect_to || 'http://127.0.0.1:4173/');
+    const redirect = (params) => {
+      for (const [k, v] of Object.entries(params)) back.searchParams.set(k, v);
+      res.writeHead(302, { ...cors, location: back.toString() });
+      res.end();
+    };
+    if (state.google.cancel) return redirect({ error: 'access_denied', error_description: 'The user denied access' });
+    const email = state.google.email;
+    // مشغّل القاعدة: لا يُنشأ حساب إلا للمالك المحدَّد (أو حساب موجود مسبقًا)
+    if (!state.owner || (email !== state.owner && !state.users.has(email)))
+      return redirect({ error: 'server_error', error_code: 'unexpected_failure', error_description: 'Database error saving new user' });
+    const code = crypto.randomBytes(12).toString('hex');
+    state.codes.set(code, { email, challenge: q.code_challenge, method: q.code_challenge_method });
+    return redirect({ code });
   }
-  if (path === '/auth/v1/verify' && req.method === 'POST') {
+  // 2) تبديل الرمز بجلسة (PKCE) أو تجديد الجلسة
+  if (path === '/auth/v1/token' && req.method === 'POST' && url.searchParams.get('grant_type') === 'pkce') {
     const b = await readBody(req);
-    const email = String(b.email || '').toLowerCase();
-    if (b.token !== CODE || !state.sends.some((s) => s.email === email)) return send(res, 403, { code: 403, error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
-    state.users.set(email, uidFor(email));
-    return send(res, 200, session(email));
+    const c = state.codes.get(b.auth_code);
+    state.codes.delete(b.auth_code);
+    const challenge = crypto.createHash('sha256').update(String(b.code_verifier || '')).digest('base64url');
+    if (!c || (c.method || '').toLowerCase() !== 's256' || c.challenge !== challenge) return send(res, 400, { code: 400, error_code: 'flow_state_not_found', msg: 'invalid flow state, no valid flow state found' });
+    state.users.set(c.email, uidFor(c.email));
+    return send(res, 200, session(c.email));
   }
   if (path === '/auth/v1/token' && req.method === 'POST') {
     const b = await readBody(req);
@@ -146,6 +181,8 @@ const server = http.createServer(async (req, res) => {
     const user = userFromAuth(req);
     if (!user) return send(res, 401, { message: 'JWT expired', code: 'PGRST301' });
     if (state.failRest) return send(res, 503, { message: 'simulated outage' });
+    // سياسة RLS المقيِّدة: غير المالك لا يرى ولا يكتب
+    if (state.owner && user.email !== state.owner) return req.method === 'GET' ? send(res, 200, []) : send(res, 403, { code: '42501', message: 'new row violates row-level security policy' });
     const own = ownerCol(table);
     const mine = () => state.tables[table].filter((r) => r[own] === user.id);
 
