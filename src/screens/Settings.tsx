@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { SAFETY_NOTE } from '../data/program';
+import { ACTIVE_PROGRAM, SAFETY_NOTE } from '../data/program';
 import { useAuth } from '../lib/auth';
 import { exportAll, saveProfile, saveSettings, useDB } from '../lib/store';
 import { syncNow, useSyncInfo } from '../lib/sync';
@@ -19,7 +19,7 @@ export default function Settings() {
   const { toast } = useToast();
   const install = useInstall();
   const s = d.settings;
-  const [name, setName] = useState(db?.profile?.display_name ?? 'زياد');
+  const [name, setName] = useState(db?.profile?.display_name ?? ACTIVE_PROGRAM.defaultName);
   const [outOpen, setOutOpen] = useState(false);
   const pending = db?.pending.length ?? 0;
 
@@ -128,7 +128,7 @@ export default function Settings() {
           <label htmlFor="dn">الاسم في التحية</label>
           <div className="row" style={{ gap: 8 }}>
             <input id="dn" className="input grow" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
-            <button className="btn btn-ghost" disabled={!name.trim() || name.trim() === (db?.profile?.display_name ?? 'زياد')} onClick={() => { saveProfile(name.trim()); toast('تم الحفظ'); }}>حفظ</button>
+            <button className="btn btn-ghost" disabled={!name.trim() || name.trim() === (db?.profile?.display_name ?? ACTIVE_PROGRAM.defaultName)} onClick={() => { saveProfile(name.trim()); toast('تم الحفظ'); }}>حفظ</button>
           </div>
         </div>
         <div className="stat-line"><Icon name="link" /><span className="ltr" dir="ltr" style={{ overflowWrap: 'anywhere' }}>{user?.email}</span></div>

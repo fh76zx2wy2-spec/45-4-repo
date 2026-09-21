@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DAYS, EXTRA_KINDS, SHORT_NOTE, SHORT_PRESETS, type DayDef, type DayId } from '../data/program';
+import { DAYS, EXTRA_KINDS, SESSION_STRUCTURE, SHORT_NOTE, SHORT_PRESETS, type DayDef, type DayId, type ShortMinutes } from '../data/program';
 import { MACHINES } from '../data/machines';
 import { resolvePlan } from '../lib/plan';
 import type { Derived } from '../lib/derived';
@@ -66,10 +66,10 @@ export function ShortSheet({
   open: boolean;
   onClose: () => void;
   d: Derived;
-  onStart: (day: DayId, minutes: 15 | 25 | 30) => void;
+  onStart: (day: DayId, minutes: ShortMinutes) => void;
 }) {
   const [day, setDay] = useState<DayId | null>(null);
-  const [minutes, setMinutes] = useState<15 | 25 | 30>(25);
+  const [minutes, setMinutes] = useState<ShortMinutes>(SHORT_PRESETS[0]?.minutes ?? 25);
   const dayId: DayId = day ?? d.suggested ?? 1;
   const plan = resolvePlan(dayId, d.position.week, d.settings, { shortMinutes: minutes });
   return (
@@ -83,7 +83,7 @@ export function ShortSheet({
         </button>
       }
     >
-      <p className="muted" style={{ fontSize: 14 }}>الجلسة الأصلية 45 دقيقة</p>
+      <p className="muted" style={{ fontSize: 14 }}>الجلسة الأصلية {SESSION_STRUCTURE.total} دقيقة</p>
       <div>
         <div className="label" style={{ marginBottom: 8 }}>المدة المتاحة</div>
         <div className="seg" role="group" aria-label="المدة">

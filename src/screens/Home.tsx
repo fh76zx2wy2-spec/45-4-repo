@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { DAY_BY_ID, PROGRAM_WEEKS, WEEKLY_GOAL } from '../data/program';
+import { ACTIVE_PROGRAM, DAY_BY_ID, PROGRAM_WEEKS, SESSION_STRUCTURE, WEEKLY_GOAL } from '../data/program';
 import { DAILY_FOCUS, pickByDate } from '../data/nutrition';
 import { DURATION_PICKS, RECITERS } from '../data/audio';
 import { useDerived } from '../lib/derived';
@@ -24,7 +24,7 @@ export default function Home() {
   const [shortOpen, setShortOpen] = useState(false);
   const [extraOpen, setExtraOpen] = useState(false);
 
-  const name = db?.profile?.display_name?.trim() || 'زياد';
+  const name = db?.profile?.display_name?.trim() || ACTIVE_PROGRAM.defaultName;
   const { today, info, suggested, position, stats, settings } = d;
   const live = db?.live ?? null;
   const day = suggested ? DAY_BY_ID[suggested] : null;
@@ -153,7 +153,7 @@ export default function Home() {
             <h2 className="ticket-title">اليوم {day.id}<span style={{ opacity: .6 }}> — </span>{day.focus}</h2>
             <div className="ticket-sub">{day.subtitle}</div>
             <div className="ticket-tags">
-              <span className="tag tag-ghost"><Icon name="clock" size={14} /> 45 دقيقة</span>
+              <span className="tag tag-ghost"><Icon name="clock" size={14} /> {SESSION_STRUCTURE.total} دقيقة</span>
               <span className="tag tag-ghost">{phase.badge}</span>
               <span className="tag tag-ghost">{d.advice.label}</span>
             </div>

@@ -12,7 +12,7 @@ export function Logo({ size = 44, subtitle = false, className = '' }: { size?: n
         <span className="lslash">/</span>
         <span className="l4">4</span>
       </span>
-      {subtitle && <span className="logo-sub">٤ أيام · ٤٥ دقيقة</span>}
+      {subtitle && <span className="logo-sub">٤ أيام · خطتك الشخصية</span>}
     </div>
   );
 }

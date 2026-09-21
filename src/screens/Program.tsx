@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  ACTIVE_PROGRAM,
   CARDIO_INTENSITY,
   CONTINUE_TIPS,
   DAYS,
@@ -49,9 +50,20 @@ export default function ProgramScreen() {
       <section className="card">
         <div className="card-title" style={{ marginBottom: 4 }}>بنية الجلسة · {SESSION_STRUCTURE.total} دقيقة</div>
         <div className="struct">
-          <div style={{ flex: SESSION_STRUCTURE.cardio }} className="c1"><b className="num">{SESSION_STRUCTURE.cardio}</b>كارديو</div>
-          <div style={{ flex: SESSION_STRUCTURE.iron }} className="c2"><b className="num">{SESSION_STRUCTURE.iron}</b>حديد</div>
-          <div style={{ flex: SESSION_STRUCTURE.stretch + 4 }} className="c3"><b className="num">{SESSION_STRUCTURE.stretch}</b>إطالة</div>
+          {ACTIVE_PROGRAM.weightsFirst ? (
+            <>
+              {SESSION_STRUCTURE.warmup > 0 && <div style={{ flex: SESSION_STRUCTURE.warmup + 3 }} className="c1"><b className="num">{SESSION_STRUCTURE.warmup}</b>تسخين</div>}
+              <div style={{ flex: SESSION_STRUCTURE.iron }} className="c2"><b className="num">{SESSION_STRUCTURE.iron}</b>حديد</div>
+              <div style={{ flex: SESSION_STRUCTURE.cardio }} className="c1"><b className="num">{SESSION_STRUCTURE.cardio}</b>كارديو</div>
+              <div style={{ flex: SESSION_STRUCTURE.stretch + 3 }} className="c3"><b className="num">{SESSION_STRUCTURE.stretch}</b>إطالة</div>
+            </>
+          ) : (
+            <>
+              <div style={{ flex: SESSION_STRUCTURE.cardio }} className="c1"><b className="num">{SESSION_STRUCTURE.cardio}</b>كارديو</div>
+              <div style={{ flex: SESSION_STRUCTURE.iron }} className="c2"><b className="num">{SESSION_STRUCTURE.iron}</b>حديد</div>
+              <div style={{ flex: SESSION_STRUCTURE.stretch + 4 }} className="c3"><b className="num">{SESSION_STRUCTURE.stretch}</b>إطالة</div>
+            </>
+          )}
         </div>
       </section>
 

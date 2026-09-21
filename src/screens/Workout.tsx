@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DAYS, SAFETY_NOTE, WEEKLY_GOAL, type DayId } from '../data/program';
+import { DAYS, SAFETY_NOTE, SESSION_STRUCTURE, WEEKLY_GOAL, type DayId } from '../data/program';
 import { MACHINES } from '../data/machines';
 import { useDerived } from '../lib/derived';
 import { useStartActions } from '../lib/actions';
@@ -72,7 +72,7 @@ export default function Workout() {
       <div className="card">
         <button className="list-row" style={{ padding: '4px 0' }} onClick={() => setShortOpen(true)}>
           <span className="ic"><Icon name="bolt" /></span>
-          <div className="grow"><div className="t">وقتي اليوم قصير</div><div className="s">15 أو 25 أو 30 دقيقة — الجلسة الأصلية 45 دقيقة</div></div>
+          <div className="grow"><div className="t">وقتي اليوم قصير</div><div className="s">نسخة مختصرة من الجلسة الأصلية {SESSION_STRUCTURE.total} دقيقة</div></div>
           <Icon name="chevL" className="chev" />
         </button>
         <button className="list-row" style={{ padding: '4px 0' }} onClick={() => setExtraOpen(true)}>
@@ -104,17 +104,28 @@ export default function Workout() {
           <>
             <div className="chips">
               <span className="tag">{plan.phase.badge}</span>
-              <span className="tag">45 دقيقة</span>
+              <span className="tag">{SESSION_STRUCTURE.total} دقيقة</span>
               {d.info.doneDays.has(plan.day.id) && <span className="tag tag-solid"><Icon name="check" size={14} /> مكتمل هذا الأسبوع</span>}
             </div>
             <div className="plan-list">
-              <div className="plan-row">
-                <Illustration id={MACHINES[plan.cardio.machineId].illustration} className="sm plan-ill" />
-                <div className="grow">
-                  <div className="t">{MACHINES[plan.cardio.machineId].ar}</div>
-                  <div className="s">كارديو {plan.cardio.minutes} دقيقة · {plan.cardio.mode === 'intervals' ? 'فترات' : 'إيقاع ثابت'}</div>
+              {plan.weightsFirst && plan.warmupMinutes > 0 && (
+                <div className="plan-row">
+                  <Illustration id={MACHINES[plan.cardio.machineId].illustration} className="sm plan-ill" />
+                  <div className="grow">
+                    <div className="t">تسخين</div>
+                    <div className="s">{plan.warmupMinutes} دقائق · أوبتيكال أو سيكل هادئ</div>
+                  </div>
                 </div>
-              </div>
+              )}
+              {!plan.weightsFirst && (
+                <div className="plan-row">
+                  <Illustration id={MACHINES[plan.cardio.machineId].illustration} className="sm plan-ill" />
+                  <div className="grow">
+                    <div className="t">{MACHINES[plan.cardio.machineId].ar}</div>
+                    <div className="s">كارديو {plan.cardio.minutes} دقيقة · {plan.cardio.mode === 'intervals' ? 'فترات' : 'إيقاع ثابت'}</div>
+                  </div>
+                </div>
+              )}
               {plan.exercises.map((e) => (
                 <div className="plan-row" key={e.machineId}>
                   <Illustration id={MACHINES[e.machineId].illustration} className="sm plan-ill" />
@@ -124,6 +135,15 @@ export default function Workout() {
                   </div>
                 </div>
               ))}
+              {plan.weightsFirst && (
+                <div className="plan-row">
+                  <Illustration id={MACHINES[plan.cardio.machineId].illustration} className="sm plan-ill" />
+                  <div className="grow">
+                    <div className="t">{MACHINES[plan.cardio.machineId].ar}</div>
+                    <div className="s">كارديو {plan.cardio.minutes} دقيقة · {plan.cardio.mode === 'intervals' ? 'فترات' : 'إيقاع ثابت'}</div>
+                  </div>
+                </div>
+              )}
               <div className="plan-row">
                 <Illustration id="stretch" className="sm plan-ill" />
                 <div className="grow"><div className="t">إطالة</div><div className="s">{plan.stretchMinutes} دقائق</div></div>

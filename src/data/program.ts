@@ -10,7 +10,31 @@ export type DayId = 1 | 2 | 3 | 4;
 export type PhaseId = 'adapt' | 'build' | 'firm';
 
 /** بنية الجلسة الأصلية: 20 كارديو + 20 حديد + 5 إطالة = 45 دقيقة */
-export const SESSION_STRUCTURE = { cardio: 20, iron: 20, stretch: 5, total: 45 } as const;
+export interface SessionStructure {
+  warmup: number;
+  cardio: number;
+  iron: number;
+  stretch: number;
+  total: number;
+}
+
+export let SESSION_STRUCTURE: SessionStructure = { warmup: 0, cardio: 20, iron: 20, stretch: 5, total: 45 };
+
+export interface ActiveProgramMeta {
+  key: 'ziyad' | 'abdulsalam';
+  defaultName: string;
+  email: string;
+  weightsFirst: boolean;
+  cardioEmbeddedWarmup: boolean;
+}
+
+export let ACTIVE_PROGRAM: ActiveProgramMeta = {
+  key: 'ziyad',
+  defaultName: 'زياد',
+  email: 'z062496@gmail.com',
+  weightsFirst: false,
+  cardioEmbeddedWarmup: true,
+};
 export const WEEKLY_GOAL = 4;
 export const PROGRAM_WEEKS = 12;
 
@@ -57,7 +81,7 @@ export interface DayDef {
   stretchHint: string;
 }
 
-export const DAYS: DayDef[] = [
+export let DAYS: DayDef[] = [
   {
     id: 1,
     title: 'الصدر والظهر والأكتاف',
@@ -145,7 +169,7 @@ export const DAYS: DayDef[] = [
   },
 ];
 
-export const DAY_BY_ID: Record<DayId, DayDef> = Object.fromEntries(DAYS.map((d) => [d.id, d])) as Record<DayId, DayDef>;
+export let DAY_BY_ID: Record<DayId, DayDef> = Object.fromEntries(DAYS.map((d) => [d.id, d])) as Record<DayId, DayDef>;
 
 /** «نفّذ التمارين الخمسة واحدًا بعد الآخر بدون توقف (راحة 30 ثانية بين كل تمرين)، ثم خذ دقيقة راحة وابدأ الجولة الثانية.» */
 export const CIRCUIT_NOTE =
@@ -171,9 +195,11 @@ export interface PhaseDef {
   reps: string;
   /** وصف قصير لبطاقة الرئيسية */
   short: string;
+  /** عند true تبقى تكرارات كل تمرين كما هي في جدول اليوم */
+  preserveTableReps?: boolean;
 }
 
-export const PHASES: PhaseDef[] = [
+export let PHASES: PhaseDef[] = [
   {
     id: 'adapt',
     name: 'التأقلم',
@@ -185,6 +211,7 @@ export const PHASES: PhaseDef[] = [
     sets: 2,
     reps: '15',
     short: 'أوزان خفيفة جدًا · تعلّم الحركة',
+    preserveTableReps: false,
   },
   {
     id: 'build',
@@ -197,6 +224,7 @@ export const PHASES: PhaseDef[] = [
     sets: 3,
     reps: '12',
     short: '3 × 12 · وزن متوسط',
+    preserveTableReps: true,
   },
   {
     id: 'firm',
@@ -209,25 +237,24 @@ export const PHASES: PhaseDef[] = [
     sets: 3,
     reps: '10–12',
     short: '3 × 10–12 · وزن أثقل تدريجيًا',
+    preserveTableReps: false,
   },
 ];
 
 export function phaseForWeek(week: number): PhaseDef {
-  if (week <= 2) return PHASES[0];
-  if (week <= 6) return PHASES[1];
-  return PHASES[2];
+  return PHASES.find((p) => week >= p.from && week <= p.to) ?? PHASES[PHASES.length - 1];
 }
 
-export const WEIGHT_RULE =
+export let WEIGHT_RULE =
   'إذا أنهيت كل التكرارات بسهولة في سيتات الجلسة كلها، ارفع الوزن بأصغر درجة في الجهاز في الجلسة التالية. لا ترفعه إن كان شكل الحركة سيتغيّر أو تحتاج إلى التأرجح.';
 
 /** التلميح المعروض بعد تقييم «سهل» أكثر من مرة (لا يغيّر الوزن تلقائيًا) */
-export const WEIGHT_HINT = 'إذا أنهيت جميع التكرارات بسهولة وبوضعية سليمة، يمكنك زيادة الوزن بأصغر درجة متاحة.';
+export let WEIGHT_HINT = 'إذا أنهيت جميع التكرارات بسهولة وبوضعية سليمة، يمكنك زيادة الوزن بأصغر درجة متاحة.';
 
-export const CARDIO_INTENSITY =
+export let CARDIO_INTENSITY =
   'اجعل الإيقاع بحيث تستطيع الكلام بجمل قصيرة لكن لا تستطيع الغناء (تقريبًا 6–7 من 10). إن كنت تقيس نبضك فالمنطقة المناسبة نحو 120–145 نبضة/دقيقة.';
 
-export const INTERVAL_NOTE =
+export let INTERVAL_NOTE =
   'بعد التسخين: دقيقة أسرع (7–8 من 10) ثم دقيقتان هادئتان (5 من 10)، وكرّرها حتى نهاية الـ 20 دقيقة. ابدأ بها من الأسبوع 3.';
 
 /* ======================== ملفّ الكارديو ======================== */
@@ -251,10 +278,10 @@ export function buildCardioSegments(
   phase: PhaseId,
 ): CardioSegment[] {
   const total = Math.round(minutes * 60);
-  const warm = Math.min(300, Math.round(total * 0.25));
-  const segs: CardioSegment[] = [
-    { kind: 'warmup', seconds: warm, label: 'تسخين هادئ', hint: 'إيقاع هادئ ومقاومة خفيفة' },
-  ];
+  const warm = ACTIVE_PROGRAM.cardioEmbeddedWarmup ? Math.min(300, Math.round(total * 0.25)) : 0;
+  const segs: CardioSegment[] = warm
+    ? [{ kind: 'warmup', seconds: warm, label: 'تسخين هادئ', hint: 'إيقاع هادئ ومقاومة خفيفة' }]
+    : [];
   let left = total - warm;
   if (mode === 'steady' || phase === 'adapt') {
     segs.push({ kind: 'steady', seconds: left, label: 'إيقاع ثابت', hint: 'تكلّم بجمل قصيرة ولا تستطيع الغناء (6–7 من 10)' });
@@ -276,10 +303,10 @@ export function buildCardioSegments(
 
 /* ======================== الأسبوع الأول: حالة «رجعت للنادي» ======================== */
 
-export const FIRST_VISIT_NOTE =
+export let FIRST_VISIT_NOTE =
   'بما أنك منقطع فترة، ابدأ بأوزان خفيفة جدًا في الأسبوعين الأولين ولا تحاول «تعويض» ما فات. اطلب من مدرّب النادي أن يضبط لك مقاعد الأجهزة في أول مرة، فهذا يوفّر عليك الوقت ويحميك من الإصابة.';
 
-export const SAFETY_NOTE =
+export let SAFETY_NOTE =
   'ابدأ بأوزان خفيفة، وتوقف عن التمرين عند الشعور بأعراض غير معتادة، واستشر مختصًا عند الحاجة.';
 
 export const WARNINGS: string[] = [
@@ -289,7 +316,7 @@ export const WARNINGS: string[] = [
   'توقّف فورًا عند أي ألم حاد في المفصل أو دوخة أو ألم/ضيق في الصدر، واستشر الطبيب.',
 ];
 
-export const GENERAL_DISCLAIMER =
+export let GENERAL_DISCLAIMER =
   'هذه خطة عامة للتوجيه وليست بديلًا عن الطبيب أو مدرّب النادي. يُفضَّل فحص عام سريع قبل البدء بعد انقطاع طويل، ومراجعة المدرّب لضبط الأجهزة على جسمك.';
 
 export const CONTINUE_TIPS: string[] = [
@@ -301,8 +328,10 @@ export const CONTINUE_TIPS: string[] = [
 
 /* ======================== الجلسة المختصرة ======================== */
 
+export type ShortMinutes = 15 | 25 | 30 | 45;
+
 export interface ShortPreset {
-  minutes: 15 | 25 | 30;
+  minutes: ShortMinutes;
   cardio: number;
   /** ميزانية الحديد بالدقائق */
   iron: number;
@@ -315,14 +344,14 @@ export interface ShortPreset {
  * نسخ مختصرة: تحافظ على تركيز اليوم وترتيبه، فلا تُفسد توزيع البرنامج.
  * وتُحسب ضمن جلسات الأسبوع لليوم نفسه (الذهاب القصير أفضل من الإلغاء).
  */
-export const SHORT_PRESETS: ShortPreset[] = [
+export let SHORT_PRESETS: ShortPreset[] = [
   { minutes: 15, cardio: 6, iron: 7, stretch: 2, maxSets: 2, label: '15 دقيقة' },
   { minutes: 25, cardio: 10, iron: 12, stretch: 3, maxSets: 2, label: '25 دقيقة' },
   { minutes: 30, cardio: 12, iron: 14, stretch: 4, maxSets: 3, label: '30 دقيقة' },
 ];
 
 /** الجلسة الأصلية 45 دقيقة */
-export const SHORT_NOTE = 'الجلسة الأصلية 45 دقيقة. هذه نسخة مختصرة لليوم نفسه — الذهاب لفترة قصيرة أفضل من إلغاء اليوم بالكامل.';
+export let SHORT_NOTE = 'الجلسة الأصلية 45 دقيقة. هذه نسخة مختصرة لليوم نفسه — الذهاب لفترة قصيرة أفضل من إلغاء اليوم بالكامل.';
 
 /* ======================== الجلسة الخامسة الاختيارية ======================== */
 
@@ -412,6 +441,191 @@ export const DAY_SHORT: Record<DayId, string> = {
   3: 'اليوم 3',
   4: 'اليوم 4',
 };
+
+
+/* ======================== الخطط حسب الحساب ======================== */
+
+const ZIYAD_STRUCTURE: SessionStructure = { ...SESSION_STRUCTURE };
+const ZIYAD_DAYS: DayDef[] = DAYS.map((d) => ({
+  ...d,
+  cardio: { ...d.cardio },
+  exercises: d.exercises.map((e) => ({ ...e })),
+  circuit: d.circuit ? { ...d.circuit } : undefined,
+}));
+const ZIYAD_PHASES: PhaseDef[] = PHASES.map((p) => ({ ...p }));
+const ZIYAD_SHORT_PRESETS: ShortPreset[] = SHORT_PRESETS.map((p) => ({ ...p }));
+const ZIYAD_SHORT_NOTE = SHORT_NOTE;
+const ZIYAD_INTERVAL_NOTE = INTERVAL_NOTE;
+const ZIYAD_WEIGHT_RULE = WEIGHT_RULE;
+
+const ABDULSALAM_DAYS: DayDef[] = [
+  {
+    id: 1,
+    title: 'الجزء العلوي (أ)',
+    focus: 'صدر · ظهر · أكتاف · ترايسبس',
+    subtitle: 'أوزان أثقل',
+    kind: 'straight',
+    cardio: { machineId: 'elliptical', mode: 'steady', note: '15 دقيقة بإيقاع ثابت بعد الحديد (تستطيع الكلام بجمل قصيرة)' },
+    ironSummary: '5 تمارين · 35 دقيقة',
+    exercises: [
+      { machineId: 'chest-press', sets: 3, reps: '8–10', rest: 90, phaseScaled: true },
+      { machineId: 'lat-pulldown', sets: 3, reps: '8–10', rest: 90, phaseScaled: true },
+      { machineId: 'shoulder-press', sets: 3, reps: '10', rest: 90, phaseScaled: true },
+      { machineId: 'seated-row', sets: 3, reps: '10', rest: 90, phaseScaled: true },
+      { machineId: 'triceps-pushdown', sets: 2, reps: '12', rest: 60, phaseScaled: true },
+    ],
+    stretchHint: 'الصدر والظهر والأكتاف والذراعان: شدّ لطيف 20–30 ثانية لكل وضعية.',
+  },
+  {
+    id: 2,
+    title: 'الأرجل (أ)',
+    focus: 'فخذ · سمانة · بطن',
+    subtitle: 'أوزان أثقل',
+    kind: 'straight',
+    cardio: { machineId: 'bike', mode: 'steady', note: '15 دقيقة بإيقاع ثابت بعد الحديد (60–80 دورة/دقيقة)' },
+    ironSummary: '5 تمارين · 35 دقيقة',
+    exercises: [
+      { machineId: 'leg-press', sets: 3, reps: '10', rest: 90, phaseScaled: true },
+      { machineId: 'leg-extension', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'leg-curl', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'calf-raise', sets: 3, reps: '15', rest: 45, phaseScaled: true },
+      { machineId: 'plank', sets: 3, reps: '30 ثانية', rest: 45, phaseScaled: true, timed: true },
+    ],
+    stretchHint: 'الفخذان والسمانة والورك: شدّ لطيف 20–30 ثانية لكل وضعية.',
+  },
+  {
+    id: 3,
+    title: 'الجزء العلوي (ب)',
+    focus: 'ظهر · صدر · أكتاف · ذراعان',
+    subtitle: 'تكرارات أكثر',
+    kind: 'straight',
+    cardio: { machineId: 'elliptical', mode: 'intervals', note: '15 دقيقة: دقيقة أسرع + دقيقتان هادئتان، كرّرها بعد الحديد' },
+    ironSummary: '5 تمارين · 35 دقيقة',
+    exercises: [
+      { machineId: 'lat-pulldown', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'pec-deck', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'lateral-raise', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'biceps-curl', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'triceps-pushdown', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+    ],
+    stretchHint: 'الظهر والصدر والأكتاف والذراعان: شدّ لطيف 20–30 ثانية لكل وضعية.',
+  },
+  {
+    id: 4,
+    title: 'الأرجل (ب) + البطن',
+    focus: 'مؤخرة · فخذ خلفي · بطن',
+    subtitle: 'تكرارات أكثر',
+    kind: 'straight',
+    cardio: { machineId: 'bike', mode: 'intervals', note: '15 دقيقة: دقيقة أسرع + دقيقتان هادئتان، أو 20 دقيقة سباحة هادئة' },
+    ironSummary: '5 تمارين · 35 دقيقة',
+    exercises: [
+      { machineId: 'leg-press', sets: 3, reps: '12–15', rest: 60, phaseScaled: true },
+      { machineId: 'glute-bridge', sets: 3, reps: '15', rest: 60, phaseScaled: true },
+      { machineId: 'leg-curl', sets: 3, reps: '12', rest: 60, phaseScaled: true },
+      { machineId: 'crunch', sets: 3, reps: '15', rest: 45, phaseScaled: true },
+      { machineId: 'plank', sets: 3, reps: '30 ثانية', rest: 45, phaseScaled: true, timed: true },
+    ],
+    stretchHint: 'المؤخرة والفخذ الخلفي والبطن: شدّ لطيف 20–30 ثانية لكل وضعية.',
+  },
+];
+
+const ABDULSALAM_PHASES: PhaseDef[] = [
+  {
+    id: 'adapt',
+    name: 'التأقلم',
+    badge: 'تأقلم',
+    from: 1,
+    to: 2,
+    iron: 'سيتان فقط لكل تمرين × 12–15 تكرار بوزن خفيف. تعلّم الحركة وضبط الجهاز.',
+    cardio: '15 دقيقة ثابتة بمقاومة خفيفة في كل الأيام.',
+    sets: 2,
+    reps: '12–15',
+    short: 'سيتان · وزن خفيف · تعلّم الحركة',
+    preserveTableReps: false,
+  },
+  {
+    id: 'build',
+    name: 'البناء',
+    badge: 'بناء',
+    from: 3,
+    to: 8,
+    iron: '3 سيتات حسب الجدول. اترك في نفسك تكرارين تقريبًا قبل الفشل.',
+    cardio: 'اليومان 1 و2 ثابت · اليومان 3 و4 فترات.',
+    sets: 3,
+    reps: '12',
+    short: '3 سيتات حسب الجدول',
+    preserveTableReps: true,
+  },
+  {
+    id: 'firm',
+    name: 'التقدّم',
+    badge: 'تقدّم',
+    from: 9,
+    to: 12,
+    iron: 'أوزان أثقل تدريجيًا، ويمكن إضافة سيت رابع للتمرين الأول في كل يوم.',
+    cardio: 'ارفع المقاومة درجة، أو 20 دقيقة في اليومين الثابتين.',
+    sets: 3,
+    reps: '12',
+    short: 'أوزان أثقل تدريجيًا',
+    preserveTableReps: true,
+  },
+];
+
+const ABDULSALAM_SHORT_PRESETS: ShortPreset[] = [
+  { minutes: 45, cardio: 10, iron: 25, stretch: 5, maxSets: 3, label: '45 دقيقة' },
+];
+
+function mapDays(days: DayDef[]): Record<DayId, DayDef> {
+  return Object.fromEntries(days.map((d) => [d.id, d])) as Record<DayId, DayDef>;
+}
+
+export function setProgramForEmail(email: string | null | undefined) {
+  const e = (email ?? '').trim().toLowerCase();
+  if (e === 'amk157662@gmail.com') {
+    ACTIVE_PROGRAM = {
+      key: 'abdulsalam',
+      defaultName: 'عبدالسلام',
+      email: 'amk157662@gmail.com',
+      weightsFirst: true,
+      cardioEmbeddedWarmup: false,
+    };
+    SESSION_STRUCTURE = { warmup: 5, cardio: 15, iron: 35, stretch: 5, total: 60 };
+    DAYS = ABDULSALAM_DAYS.map((d) => ({
+      ...d,
+      cardio: { ...d.cardio },
+      exercises: d.exercises.map((x) => ({ ...x })),
+      circuit: d.circuit ? { ...d.circuit } : undefined,
+    }));
+    DAY_BY_ID = mapDays(DAYS);
+    PHASES = ABDULSALAM_PHASES.map((p) => ({ ...p }));
+    SHORT_PRESETS = ABDULSALAM_SHORT_PRESETS.map((p) => ({ ...p }));
+    SHORT_NOTE = 'إذا ضاق وقتك إلى 45 دقيقة: احذف التمرين الخامس وخفّض الكارديو إلى 10 دقائق. الأهم ألا تترك الجلسة كلها.';
+    INTERVAL_NOTE = 'في اليومين 3 و4: دقيقة أسرع + دقيقتان هادئتان، كرّرها حتى نهاية 15 دقيقة الكارديو.';
+    WEIGHT_RULE = 'عندما تنجز أعلى رقم في نطاق التكرارات في كل السيتات بشكل نظيف، ارفع الوزن بأصغر درجة في الجلسة التالية ثم ابدأ من أول النطاق.';
+    return;
+  }
+
+  ACTIVE_PROGRAM = {
+    key: 'ziyad',
+    defaultName: 'زياد',
+    email: 'z062496@gmail.com',
+    weightsFirst: false,
+    cardioEmbeddedWarmup: true,
+  };
+  SESSION_STRUCTURE = { ...ZIYAD_STRUCTURE };
+  DAYS = ZIYAD_DAYS.map((d) => ({
+    ...d,
+    cardio: { ...d.cardio },
+    exercises: d.exercises.map((x) => ({ ...x })),
+    circuit: d.circuit ? { ...d.circuit } : undefined,
+  }));
+  DAY_BY_ID = mapDays(DAYS);
+  PHASES = ZIYAD_PHASES.map((p) => ({ ...p }));
+  SHORT_PRESETS = ZIYAD_SHORT_PRESETS.map((p) => ({ ...p }));
+  SHORT_NOTE = ZIYAD_SHORT_NOTE;
+  INTERVAL_NOTE = ZIYAD_INTERVAL_NOTE;
+  WEIGHT_RULE = ZIYAD_WEIGHT_RULE;
+}
 
 /** أين يُستخدم الجهاز في البرنامج (مُحسوب من الأيام) */
 export function machineUsage(id: MachineId): DayId[] {

@@ -34,6 +34,7 @@ export type MachineId =
   | 'leg-press'
   | 'leg-extension'
   | 'leg-curl'
+  | 'calf-raise'
   | 'pec-deck'
   | 'lateral-raise'
   | 'biceps-curl'
@@ -192,6 +193,21 @@ export const MACHINES: Record<MachineId, Machine> = {
     illustration: 'leg-curl',
     keywords: ['رجل', 'ارجل', 'فخذ', 'خلفي', 'leg', 'curl'],
   },
+  'calf-raise': {
+    id: 'calf-raise',
+    ar: 'رفع السمانة',
+    en: 'Calf Raise',
+    group: 'strength',
+    muscles: 'عضلة السمانة (ربلة الساق)',
+    steps: [
+      'قف على حافة درجة أو استخدم منصة جهاز ضغط الأرجل، واجعل الكعبين حرّين للحركة.',
+      'ارفع كعبيك لأعلى ما تستطيع واثبت لحظة.',
+      'انزل ببطء حتى تشعر بتمدد خفيف في السمانة.',
+    ],
+    warn: 'أمسك دعامة للتوازن، وخفّف الوزن إذا اهتز جسمك.',
+    illustration: 'calf-raise',
+    keywords: ['سمانة', 'ربلة', 'calf', 'raise', 'ساق'],
+  },
   'pec-deck': {
     id: 'pec-deck',
     ar: 'الفراشة (بك ديك)',
@@ -316,6 +332,7 @@ export const ALTERNATIVES: Partial<Record<MachineId, { id: MachineId; note: stri
   'leg-press': [{ id: 'leg-extension', note: 'تمرين أرجل آخر ضمن برنامجك (اليوم 2).' }],
   'leg-extension': [{ id: 'leg-press', note: 'تمرين أرجل آخر ضمن برنامجك (اليومان 2 و4).' }],
   'leg-curl': [{ id: 'glute-bridge', note: 'يعمل على الفخذ الخلفي والمؤخرة (اليومان 2 و4).' }],
+  'calf-raise': [{ id: 'leg-press', note: 'يمكن أداء رفع السمانة على منصة جهاز ضغط الأرجل إذا كان مناسبًا وآمنًا.' }],
   'glute-bridge': [{ id: 'leg-curl', note: 'يعمل على الفخذ الخلفي (اليوم 2).' }],
   plank: [{ id: 'crunch', note: 'تمرين بطن آخر ضمن برنامجك (اليومان 2 و4).' }],
   crunch: [{ id: 'plank', note: 'تمرين بطن آخر ضمن برنامجك (اليومان 1 و3).' }],

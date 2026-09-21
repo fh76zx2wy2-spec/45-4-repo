@@ -39,28 +39,48 @@ export function startLiveFromPlan(
   const now = meta.now ?? Date.now();
   const lw = meta.lastWeights ?? {};
   const stages: LiveStage[] = [];
-  stages.push(
+
+  const cardioStage = (block: number) =>
     baseStage({
       key: 'cardio',
       kind: 'cardio',
-      block: 0,
+      block,
       machineId: plan.cardio.machineId,
       seconds: plan.cardio.minutes * 60,
       cardioMode: plan.cardio.mode,
       segments: plan.cardio.segments,
       reps: `${plan.cardio.minutes} د`,
-    }),
-  );
+    });
+
+  if (plan.weightsFirst && plan.warmupMinutes > 0) {
+    stages.push(
+      baseStage({
+        key: 'warmup',
+        kind: 'cardio',
+        block: 0,
+        machineId: plan.cardio.machineId,
+        seconds: plan.warmupMinutes * 60,
+        cardioMode: 'steady',
+        segments: [],
+        reps: `${plan.warmupMinutes} د`,
+      }),
+    );
+  } else {
+    stages.push(cardioStage(0));
+  }
+
   let lastBlock = 0;
+  const exerciseBaseBlock = plan.weightsFirst ? 1 : 0;
   if (plan.circuit) {
     const { rounds, optionalFrom, roundRest } = plan.circuit;
     for (let r = 1; r <= rounds; r++) {
+      const block = exerciseBaseBlock + r - 1;
       plan.exercises.forEach((e, i) => {
         stages.push(
           baseStage({
             key: `r${r}-${e.machineId}`,
             kind: 'exercise',
-            block: r,
+            block,
             machineId: e.machineId,
             sets: 1,
             reps: e.reps,
@@ -73,15 +93,15 @@ export function startLiveFromPlan(
           }),
         );
       });
+      lastBlock = block;
     }
-    lastBlock = rounds;
   } else {
     plan.exercises.forEach((e) => {
       stages.push(
         baseStage({
           key: `ex-${e.machineId}`,
           kind: 'exercise',
-          block: 0,
+          block: exerciseBaseBlock,
           machineId: e.machineId,
           sets: e.sets,
           reps: e.reps,
@@ -91,7 +111,14 @@ export function startLiveFromPlan(
         }),
       );
     });
+    lastBlock = exerciseBaseBlock;
   }
+
+  if (plan.weightsFirst) {
+    stages.push(cardioStage(lastBlock + 1));
+    lastBlock += 1;
+  }
+
   stages.push(
     baseStage({ key: 'stretch', kind: 'stretch', block: lastBlock + 1, machineId: 'stretch', seconds: plan.stretchMinutes * 60 }),
   );
@@ -380,7 +407,7 @@ export function liveToSession(
       updated_at: nowIso,
     });
   });
-  const cardioStage = live.stages.find((s) => s.kind === 'cardio' || s.kind === 'timed');
+  const cardioStage = live.stages.find((s) => s.key === 'cardio') ?? live.stages.find((s) => s.kind === 'timed');
   // مدة الكارديو الفعلية؛ وإن انتهت المرحلة دون مؤقت نفترض المدة المخططة
   const cardioSeconds = cardioStage ? (cardioStage.spent ?? (cardioStage.status === 'done' ? cardioStage.seconds ?? 0 : 0)) : 0;
   const completed = !extra.early && live.stages.every((s) => s.status !== 'pending' || s.optional);

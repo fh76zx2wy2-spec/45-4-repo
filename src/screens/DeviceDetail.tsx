@@ -1,6 +1,6 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ALTERNATIVES, MACHINES, type MachineId } from '../data/machines';
-import { DAY_BY_ID, machineUsage } from '../data/program';
+import { DAY_BY_ID, SESSION_STRUCTURE, machineUsage } from '../data/program';
 import { PageHeader } from '../components/ui';
 import { Illustration } from '../components/Illustration';
 import { setsRepsLabel } from '../lib/plan';
@@ -50,7 +50,7 @@ export default function DeviceDetail() {
                 <div key={dayId} className="swap-row">
                   <b>اليوم {dayId} — {day.focus}</b>
                   <span className="muted">
-                    {day.cardio.machineId === m.id ? `كارديو 20 دقيقة (${day.cardio.mode === 'intervals' ? 'فترات' : 'ثابت'})` : ex ? `${setsRepsLabel(ex)} · راحة ${ex.rest} ث` : ''}
+                    {day.cardio.machineId === m.id ? `كارديو ${SESSION_STRUCTURE.cardio} دقيقة (${day.cardio.mode === 'intervals' ? 'فترات' : 'ثابت'})` : ex ? `${setsRepsLabel(ex)} · راحة ${ex.rest} ث` : ''}
                   </span>
                 </div>
               );

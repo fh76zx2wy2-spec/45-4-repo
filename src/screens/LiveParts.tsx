@@ -229,13 +229,13 @@ export function TimedStage({ live, stage, now, title, hint }: { live: LiveSessio
   const seg = segIdx >= 0 ? segs[segIdx] : null;
   const over = elapsed >= total;
   const machine = MACHINES[stage.machineId as MachineId];
-  const name = stage.kind === 'stretch' ? { ar: 'الإطالة', en: 'Stretching' } : stage.kind === 'timed' ? { ar: title, en: '' } : machineName(stage.machineId);
+  const name = stage.key === 'warmup' ? { ar: 'التسخين', en: 'Warm-up' } : stage.kind === 'stretch' ? { ar: 'الإطالة', en: 'Stretching' } : stage.kind === 'timed' ? { ar: title, en: '' } : machineName(stage.machineId);
 
   return (
     <div className="stack live-stage">
       <section className="card center timed">
         <Illustration id={stage.kind === 'stretch' ? 'stretch' : illId(stage.machineId)} className="sm timed-ill" />
-        <div className="eyebrow">{stage.kind === 'cardio' ? 'الكارديو' : stage.kind === 'stretch' ? 'الإطالة' : 'جلسة إضافية'}</div>
+        <div className="eyebrow">{stage.key === 'warmup' ? 'التسخين' : stage.kind === 'cardio' ? 'الكارديو' : stage.kind === 'stretch' ? 'الإطالة' : 'جلسة إضافية'}</div>
         <h2 className="mname" style={{ marginTop: 2 }}>{name.ar}</h2>
         {name.en && <div className="en muted mname-en">{name.en}</div>}
         <div className="timed-ring">

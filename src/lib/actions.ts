@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { DayId } from '../data/program';
+import type { DayId, ShortMinutes } from '../data/program';
 import { EXTRA_BY_ID } from '../data/program';
 import { getDB, setLive, saveSettings } from './store';
 import { resolvePlan } from './plan';
@@ -12,7 +12,7 @@ export function useStartActions(d: Derived) {
   const nav = useNavigate();
 
   const startDay = useCallback(
-    (day: DayId, shortMinutes: 15 | 25 | 30 | null = null) => {
+    (day: DayId, shortMinutes: ShortMinutes | null = null) => {
       const cur = getDB();
       if (!cur) return;
       if (cur.live) {

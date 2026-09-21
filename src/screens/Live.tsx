@@ -205,7 +205,8 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
   const isExtra = live.type === 'extra';
 
   /* ---------- شريط المراحل العلوي ---------- */
-  const cardioSt = live.stages.find((s) => s.kind === 'cardio');
+  const warmupSt = live.stages.find((s) => s.key === 'warmup');
+  const cardioSt = live.stages.find((s) => s.key === 'cardio');
   const ironSts = live.stages.filter((s) => s.kind === 'exercise' && (!s.optional || live.optionalAccepted));
   const stretchSt = live.stages.find((s) => s.kind === 'stretch');
   const timedFrac = (s: typeof cardioSt) => {
@@ -216,7 +217,8 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
   };
   const ironDone = ironSts.filter((s) => s.status !== 'pending').length;
   const ironFrac = ironSts.length ? ironDone / ironSts.length : 0;
-  const inCardio = stage?.kind === 'cardio';
+  const inWarmup = stage?.key === 'warmup';
+  const inCardio = stage?.key === 'cardio';
   const inIron = stage?.kind === 'exercise';
   const inStretch = stage?.kind === 'stretch';
 
@@ -246,8 +248,16 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
           live={live}
           stage={stage}
           now={now}
-          title={extraKind?.title ?? 'جلسة إضافية'}
-          hint={stage.kind === 'cardio' && day ? day.cardio.note : stage.kind === 'stretch' && day ? day.stretchHint : extraKind?.desc ?? 'خذ وقتك وتنفّس بهدوء.'}
+          title={stage.key === 'warmup' ? 'التسخين' : extraKind?.title ?? 'جلسة إضافية'}
+          hint={
+            stage.key === 'warmup'
+              ? '5 دقائق أوبتيكال أو سيكل هادئ، ثم سيت خفيف جدًا من أول تمرين.'
+              : stage.key === 'cardio' && day
+                ? day.cardio.note
+                : stage.kind === 'stretch' && day
+                  ? day.stretchHint
+                  : extraKind?.desc ?? 'خذ وقتك وتنفّس بهدوء.'
+          }
         />
         {!isExtra && stage.status === 'pending' && (
           <div className="center"><button className="link-btn" onClick={() => upd(skipStage)}>تخطّي هذه المرحلة</button></div>
@@ -301,7 +311,7 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
     const total = stage.seconds ?? 0;
     const started = live.clock.startedAt != null;
     const el = clockElapsed(live, now);
-    const label = stage.kind === 'cardio' ? 'الكارديو' : stage.kind === 'stretch' ? 'الإطالة' : 'الجلسة';
+    const label = stage.key === 'warmup' ? 'التسخين' : stage.key === 'cardio' ? 'الكارديو' : stage.kind === 'stretch' ? 'الإطالة' : 'الجلسة';
     if (stage.status !== 'pending') {
       bar = <button className="btn btn-teal btn-lg btn-block" onClick={() => upd(nextAfterStage)}>التالي <Icon name="chevL" /></button>;
     } else if (!started) {
@@ -360,8 +370,9 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
           <div className="phasebar single" aria-hidden="true"><div><i style={{ width: `${timedFrac(stage) * 100}%` }} /></div></div>
         ) : (
           <div className="phasebar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="تقدّم الجلسة">
-            <div className={inCardio ? 'cur' : ''}><i style={{ width: `${timedFrac(cardioSt) * 100}%` }} /><span>كارديو</span></div>
+            {warmupSt && <div className={inWarmup ? 'cur' : ''}><i style={{ width: `${timedFrac(warmupSt) * 100}%` }} /><span>تسخين</span></div>}
             <div className={`wide ${inIron ? 'cur' : ''}`}><i style={{ width: `${ironFrac * 100}%` }} /><span>حديد</span></div>
+            <div className={inCardio ? 'cur' : ''}><i style={{ width: `${timedFrac(cardioSt) * 100}%` }} /><span>كارديو</span></div>
             <div className={inStretch ? 'cur' : ''}><i style={{ width: `${timedFrac(stretchSt) * 100}%` }} /><span>إطالة</span></div>
           </div>
         )}

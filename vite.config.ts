@@ -14,7 +14,7 @@ export default defineConfig({
         id: '/',
         name: '45/4',
         short_name: '45/4',
-        description: '٤ أيام · ٤٥ دقيقة — رفيقك الشخصي في النادي',
+        description: '٤ أيام · خطتك الشخصية — رفيقك في النادي',
         lang: 'ar',
         dir: 'rtl',
         start_url: '/',

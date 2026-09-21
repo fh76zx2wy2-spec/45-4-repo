@@ -2,13 +2,15 @@
  * المصادقة عبر Google OAuth فقط (Supabase Auth). لا بريد ولا رمز.
  * نطلب النطاقات الأساسية فقط (openid email profile) — لا صلاحية لقراءة البريد أو أي خدمة Google أخرى.
  * الجلسة تُحفظ في الجهاز وتُجدَّد تلقائيًا، فيدخل الموقع مباشرة في المرات التالية.
- * حصر الدخول بحساب المالك يتم في قاعدة البيانات (انظر supabase/migrations/*google_owner_lock.sql).
+ * حصر الدخول بالحسابات المصرّح لها يتم في قاعدة البيانات (انظر supabase/migrations/*google_owner_lock.sql).
  * إن انقطع الإنترنت وكانت الجلسة محفوظة، يعمل التطبيق بالبيانات المحلية.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { supabase, supabaseConfigured, urlAuthError } from './supabase';
 import { clearStore, initStore } from './store';
 import { startSyncEngine, syncNow } from './sync';
+import { setProgramForEmail } from '../data/program';
+import { setNutritionForEmail } from '../data/nutrition';
 
 export interface AuthUser {
   id: string;
@@ -39,11 +41,11 @@ function readLastUser(): AuthUser | null {
   }
 }
 
-const DENIED = 'هذا الحساب غير مسموح له بالدخول إلى 45/4. استخدم حساب Google الخاص بصاحب التطبيق.';
+const DENIED = 'هذا الحساب غير مسموح له بالدخول إلى 45/4. استخدم أحد حسابات Google المصرّح لها.';
 
 export function arabicAuthError(msg: string): string {
   const m = msg.toLowerCase().replace(/\+/g, ' ');
-  // المشغّل في قاعدة البيانات يرفض إنشاء أي حساب غير المالك → Supabase يعيد «Database error saving new user»
+  // المشغّل في قاعدة البيانات يرفض إنشاء أي حساب غير موجود في القائمة المسموحة → Supabase يعيد «Database error saving new user»
   if (m.includes('database error') || m.includes('signup_not_allowed') || m.includes('signups not allowed') || m.includes('not allowed') || m.includes('unexpected_failure')) return DENIED;
   if (m.includes('access_denied') || m.includes('cancel')) return 'أُلغي الدخول. اضغط الزر للمحاولة مرة أخرى.';
   if (m.includes('rate limit') || m.includes('too many')) return 'محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.';
@@ -62,6 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const stopSync = useRef<null | (() => void)>(null);
 
   const enter = useCallback((u: AuthUser, offline = false) => {
+    setProgramForEmail(u.email);
+    setNutritionForEmail(u.email);
     try {
       localStorage.setItem(LAST_USER, JSON.stringify(u));
     } catch {
