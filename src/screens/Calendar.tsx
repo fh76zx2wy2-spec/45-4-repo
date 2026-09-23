@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { WEEKLY_GOAL } from '../data/program';
 import { useDerived } from '../lib/derived';
+import { deleteGymVisit } from '../lib/store';
 import {
   formatGreg,
   formatHijri,
@@ -20,7 +21,7 @@ import {
 import { isCounted, monthSummary, weekInfo } from '../lib/week';
 import type { Session } from '../lib/types';
 import { Icon } from '../components/Icon';
-import { Sheet } from '../components/ui';
+import { Sheet, useToast } from '../components/ui';
 import { durationLabel, minutesLabel, DIFFICULTY_LABEL, timeLabel } from '../lib/format';
 import { EXTRA_BY_ID, DAY_BY_ID } from '../data/program';
 
@@ -31,6 +32,7 @@ function sessionTitle(s: Session): string {
 
 export default function CalendarScreen() {
   const d = useDerived();
+  const { toast } = useToast();
   const { today, sessions, weekStartDay } = d;
   const visits = d.db?.visits ?? [];
   const thisMonth = hijriMonthStart(today);
@@ -191,6 +193,17 @@ export default function CalendarScreen() {
                       <div className="grow">
                         <div className="t">وصلت {timeLabel(v.arrived_at)} {v.left_at ? `· خرجت ${timeLabel(v.left_at)}` : '· ما زلت في النادي'}</div>
                         <div className="s">المدة: {durationLabel(seconds)}</div>
+                        <button
+                          type="button"
+                          className="visit-delete-btn"
+                          onClick={() => {
+                            if (!window.confirm('حذف تسجيل هذه الزيارة؟ لا يؤثر ذلك على جلسات التمرين.')) return;
+                            deleteGymVisit(v.id);
+                            toast('تم حذف الزيارة');
+                          }}
+                        >
+                          حذف الزيارة
+                        </button>
                       </div>
                     </div>
                   );

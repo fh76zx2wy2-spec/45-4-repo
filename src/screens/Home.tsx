@@ -5,7 +5,7 @@ import { DAILY_FOCUS, pickByDate } from '../data/nutrition';
 import { DURATION_PICKS, RECITERS } from '../data/audio';
 import { useDerived } from '../lib/derived';
 import { useStartActions } from '../lib/actions';
-import { dismiss, endGymVisit, startGymVisit, useDB } from '../lib/store';
+import { deleteGymVisit, dismiss, endGymVisit, startGymVisit, useDB } from '../lib/store';
 import { useSyncInfo } from '../lib/sync';
 import { addDaysISO, diffDaysISO, formatGreg, formatHijri, formatHijriMonth, hijriOf, sinceLabel, weekdayName } from '../lib/dates';
 import { currentWeekMessage, monthRecapTarget, monthSummary, nudgeMessage, pastWeekMessage, sessionsWord, weekInfo } from '../lib/week';
@@ -14,6 +14,7 @@ import { Icon } from '../components/Icon';
 import { Illustration } from '../components/Illustration';
 import { DayPickerSheet, ExtraSheet, ShortSheet, dayIllustrations } from '../components/pickers';
 import { durationLabel, timeLabel } from '../lib/format';
+import { useBuddy } from '../lib/buddy';
 
 export default function Home() {
   const d = useDerived();
@@ -25,6 +26,7 @@ export default function Home() {
   const [shortOpen, setShortOpen] = useState(false);
   const [extraOpen, setExtraOpen] = useState(false);
   const { toast } = useToast();
+  const buddy = useBuddy();
 
   const name = db?.profile?.display_name?.trim() || ACTIVE_PROGRAM.defaultName;
   const { today, info, suggested, position, stats, settings } = d;
@@ -35,6 +37,8 @@ export default function Home() {
   const todayVisits = (db?.visits ?? []).filter((v) => v.date === today);
   const lastEndedToday = todayVisits.find((v) => !!v.left_at) ?? null;
   const lastHealthToday = (db?.health ?? []).find((h) => h.date === today) ?? null;
+  const buddyMe = buddy.me;
+  const buddyMate = buddy.buddy;
 
   const arriveAtGym = () => {
     const v = startGymVisit();
@@ -44,6 +48,20 @@ export default function Home() {
     if (!activeVisit) return;
     const v = endGymVisit(activeVisit.id);
     if (v) toast(`تم تسجيل خروجك · جلست في النادي ${durationLabel(v.duration_seconds)}`);
+  };
+  const undoArrival = () => {
+    if (!activeVisit) return;
+    if (!window.confirm('إلغاء تسجيل الوصول الحالي؟ سيُحذف وقت الوصول وكأنك لم تضغط «وصلت النادي».')) return;
+    deleteGymVisit(activeVisit.id);
+    toast('تم التراجع عن تسجيل الوصول');
+  };
+  const sendBuddyReaction = async (kind: 'kfu' | 'fire') => {
+    try {
+      const who = await buddy.sendReaction(kind);
+      toast(kind === 'kfu' ? `أرسلت 👏 كفو إلى ${who}` : `أرسلت 🔥 شد حيلك إلى ${who}`);
+    } catch {
+      toast('تعذّر إرسال التشجيع الآن');
+    }
   };
 
   const day = suggested ? DAY_BY_ID[suggested] : null;
@@ -171,6 +189,7 @@ export default function Home() {
             <div className="gym-checkin-meta">
               وصلت {timeLabel(activeVisit.arrived_at)} · يمكنك إغلاق الموقع، فالمدة تُحسب من وقت الوصول المحفوظ.
             </div>
+            <button type="button" className="gym-undo-btn" onClick={undoArrival}>تراجع عن الوصول</button>
           </>
         ) : (
           <>
@@ -314,6 +333,58 @@ export default function Home() {
       </section>
 
       {notice}
+
+      {/* أنا وعبدالسلام — تحفيز فقط، دون أي بيانات صحية خاصة */}
+      <section className="card buddy-card" aria-label="أنا وعبدالسلام">
+        <div className="row-between buddy-head">
+          <div>
+            <div className="eyebrow">رفيق التمرين</div>
+            <div className="card-title">أنا و{buddyMate?.display_name ?? 'رفيق التمرين'} 👥</div>
+          </div>
+          <button type="button" className="icon-btn" onClick={() => void buddy.refresh()} aria-label="تحديث"><Icon name="undo" size={18} /></button>
+        </div>
+
+        {buddy.latestReaction && (
+          <div className="buddy-received">
+            {buddy.latestReaction.kind === 'kfu' ? '👏' : '🔥'} {buddy.latestReaction.sender_name} أرسل لك {buddy.latestReaction.kind === 'kfu' ? 'كفو' : 'شد حيلك'}
+          </div>
+        )}
+
+        {buddy.loading ? (
+          <div className="muted" style={{ fontSize: 13.5 }}>جاري تحميل التحدي…</div>
+        ) : buddy.error || !buddyMe || !buddyMate ? (
+          <div className="muted" style={{ fontSize: 13.5 }}>تعذّر تحميل التحدي الآن. جرّب التحديث بعد قليل.</div>
+        ) : (
+          <>
+            <div className="buddy-grid">
+              {[buddyMe, buddyMate].map((b) => (
+                <div className="buddy-person" key={b.user_id}>
+                  <div className="buddy-name">{b.user_id === buddyMe.user_id ? 'أنت' : b.display_name}</div>
+                  <div className="buddy-score num">{b.weekly_sessions}/4</div>
+                  <div className="buddy-mini"><span>الزيارات</span><b className="num">{b.weekly_visits}</b></div>
+                  <div className="buddy-mini"><span>وقت النادي</span><b>{durationLabel(b.weekly_visit_seconds)}</b></div>
+                  <div className="buddy-mini"><span>آخر حضور</span><b>{b.last_arrived_at ? timeLabel(b.last_arrived_at) : '—'}</b></div>
+                  <div className="buddy-mini"><span>سلسلة 4/4 🔥</span><b className="num">{b.streak_4of4}</b></div>
+                </div>
+              ))}
+            </div>
+            <div className="buddy-challenge">
+              {buddyMe.weekly_sessions === 4 && buddyMate.weekly_sessions === 4
+                ? '🏆 أنتم الاثنين أكملتوا 4/4 هذا الأسبوع'
+                : buddyMe.weekly_sessions === buddyMate.weekly_sessions
+                  ? `التحدي متعادل ${buddyMe.weekly_sessions}/4 — من يكمل التالي؟`
+                  : buddyMe.weekly_sessions > buddyMate.weekly_sessions
+                    ? `أنت متقدم ${buddyMe.weekly_sessions} مقابل ${buddyMate.weekly_sessions} — حافظ على التقدم 💪`
+                    : `${buddyMate.display_name} متقدم ${buddyMate.weekly_sessions} مقابل ${buddyMe.weekly_sessions} — الحق به 😄`}
+            </div>
+            <div className="buddy-actions">
+              <button type="button" className="btn btn-soft" disabled={!!buddy.sending} onClick={() => void sendBuddyReaction('kfu')}>👏 كفو</button>
+              <button type="button" className="btn btn-soft" disabled={!!buddy.sending} onClick={() => void sendBuddyReaction('fire')}>🔥 شد حيلك</button>
+            </div>
+            <div className="buddy-privacy">المشاركة هنا للحضور والالتزام فقط — الوزن والقياسات والنبض وApple Health تبقى خاصة.</div>
+          </>
+        )}
+      </section>
 
       {/* 4) اقتراح الأكل */}
       <Link to="/food" className="card tap" aria-label="اقتراح الأكل">
