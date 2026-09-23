@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from 'react';
 import { supabase } from './supabase';
 import { getDB, mergeRemote, removePending, subscribe as subscribeStore, type Op } from './store';
-import type { DailyLog, Measurement, Profile, SavedAudio, Session, SessionExercise, Settings } from './types';
+import type { AppleHealthRecord, DailyLog, GymVisit, Measurement, Profile, SavedAudio, Session, SessionExercise, Settings } from './types';
 
 export type SyncState = 'idle' | 'syncing' | 'offline' | 'error' | 'disabled';
 interface SyncInfo {
@@ -101,6 +101,24 @@ async function pushOp(op: Op): Promise<void> {
       if (l) fail((await supabase.from('daily_logs').upsert({ ...l, user_id: uid }, { onConflict: 'user_id,date' })).error);
       return;
     }
+    case 'gym_visits': {
+      if (op.action === 'delete') {
+        fail((await supabase.from('gym_visits').delete().eq('id', op.id)).error);
+        return;
+      }
+      const v = db.visits.find((x) => x.id === op.id);
+      if (v) fail((await supabase.from('gym_visits').upsert({ ...v, user_id: uid })).error);
+      return;
+    }
+    case 'apple_health_records': {
+      if (op.action === 'delete') {
+        fail((await supabase.from('apple_health_records').delete().eq('id', op.id)).error);
+        return;
+      }
+      const h = db.health.find((x) => x.id === op.id);
+      if (h) fail((await supabase.from('apple_health_records').upsert({ ...h, user_id: uid })).error);
+      return;
+    }
     default:
       return;
   }
@@ -123,7 +141,7 @@ async function pull(): Promise<void> {
   if (!supabase) return;
   const db = getDB();
   if (!db) return;
-  const [profiles, settingsRows, sessions, exercises, measurements, audio, logs] = await Promise.all([
+  const [profiles, settingsRows, sessions, exercises, measurements, audio, logs, visits, health] = await Promise.all([
     fetchAll<Profile>('profiles', 'id'),
     fetchAll<Settings>('user_settings', 'user_id'),
     fetchAll<Omit<Session, 'exercises'>>('workout_sessions', 'id'),
@@ -131,6 +149,8 @@ async function pull(): Promise<void> {
     fetchAll<Measurement>('weekly_measurements', 'id'),
     fetchAll<SavedAudio>('saved_audio', 'id'),
     fetchAll<DailyLog>('daily_logs', 'date'),
+    fetchAll<GymVisit>('gym_visits', 'arrived_at'),
+    fetchAll<AppleHealthRecord>('apple_health_records', 'created_at'),
   ]);
   const bySession = new Map<string, SessionExercise[]>();
   for (const e of exercises) {
@@ -154,6 +174,16 @@ async function pull(): Promise<void> {
     })),
     audio,
     logs,
+    visits: visits.map((v) => ({ ...v, duration_seconds: Number(v.duration_seconds ?? 0) })),
+    health: health.map((h) => ({
+      ...h,
+      duration_seconds: Number(h.duration_seconds ?? 0),
+      active_kcal: h.active_kcal == null ? null : Number(h.active_kcal),
+      avg_heart_rate: h.avg_heart_rate == null ? null : Number(h.avg_heart_rate),
+      max_heart_rate: h.max_heart_rate == null ? null : Number(h.max_heart_rate),
+      distance_km: h.distance_km == null ? null : Number(h.distance_km),
+      steps: h.steps == null ? null : Number(h.steps),
+    })),
   });
 }
 

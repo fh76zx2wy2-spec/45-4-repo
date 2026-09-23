@@ -22,3 +22,20 @@ export function arNumber(n: number): string {
 }
 
 export const DIFFICULTY_LABEL: Record<string, string> = { easy: 'سهل', good: 'مناسب', hard: 'متعب' };
+
+/** وقت مختصر مثل «5:12 م» بأرقام لاتينية. */
+export function timeLabel(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('ar-SA-u-nu-latn', { hour: 'numeric', minute: '2-digit' }).format(d);
+}
+
+/** مدة بشرية مختصرة: 47 دقيقة، أو 1 س 12 د. */
+export function durationLabel(seconds: number): string {
+  const min = Math.max(0, Math.round(seconds / 60));
+  if (min < 60) return `${min} دقيقة`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h} س ${m} د` : `${h} ساعة`;
+}

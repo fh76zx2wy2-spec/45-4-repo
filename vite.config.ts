@@ -31,10 +31,13 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // عزل كاش 45/4 عن أي تطبيق آخر على نفس github.io
+        cacheId: '45-4-cache',
         // الواجهة + الخطوط + الرسومات (مضمّنة في الحزمة) تُخزَّن للعمل دون اتصال
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        // لا تسمح للـService Worker الخاص بـ45/4 بالتعامل مع ديوان القضايا.
+        navigateFallbackDenylist: [/^\/api\//, /^\/case-register(?:\/|$)/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,

@@ -73,6 +73,38 @@ export interface SavedAudio {
   updated_at: string;
 }
 
+
+export interface GymVisit {
+  id: string;
+  user_id: string;
+  /** تاريخ الزيارة حسب وقت الوصول المحلي */
+  date: string;
+  arrived_at: string;
+  left_at: string | null;
+  /** تُحدَّث عند المغادرة؛ أثناء الزيارة نحسبها من arrived_at */
+  duration_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** بيانات Apple Health المستوردة اختيارياً؛ لا تغيّر جلسات البرنامج ولا احتساب 4/4. */
+export interface AppleHealthRecord {
+  id: string;
+  user_id: string;
+  date: string;
+  workout_type: string;
+  duration_seconds: number;
+  active_kcal: number | null;
+  avg_heart_rate: number | null;
+  max_heart_rate: number | null;
+  distance_km: number | null;
+  steps: number | null;
+  source_started_at: string | null;
+  source_ended_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DailyLog {
   user_id: string;
   date: string;

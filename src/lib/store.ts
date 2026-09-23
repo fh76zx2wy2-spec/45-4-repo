@@ -5,10 +5,10 @@
  */
 import { useSyncExternalStore } from 'react';
 import { uuid } from './live';
-import { weekStartOf } from './dates';
-import type { DailyLog, LiveSession, Measurement, Profile, SavedAudio, Session, Settings } from './types';
+import { todayISO, weekStartOf } from './dates';
+import type { AppleHealthRecord, DailyLog, GymVisit, LiveSession, Measurement, Profile, SavedAudio, Session, Settings } from './types';
 
-export type Table = 'profiles' | 'user_settings' | 'workout_sessions' | 'workout_session_exercises' | 'weekly_measurements' | 'saved_audio' | 'daily_logs';
+export type Table = 'profiles' | 'user_settings' | 'workout_sessions' | 'workout_session_exercises' | 'weekly_measurements' | 'saved_audio' | 'daily_logs' | 'gym_visits' | 'apple_health_records';
 
 /** عملية معلّقة للمزامنة. للجلسات: id = معرّف الجلسة (وتُرفع تمارينها معها) */
 export interface Op {
@@ -27,6 +27,8 @@ export interface DB {
   measurements: Measurement[];
   audio: SavedAudio[];
   logs: DailyLog[];
+  visits: GymVisit[];
+  health: AppleHealthRecord[];
   live: LiveSession | null;
   pending: Op[];
   lastSync: number | null;
@@ -61,6 +63,8 @@ const emptyDB = (userId: string): DB => ({
   measurements: [],
   audio: [],
   logs: [],
+  visits: [],
+  health: [],
   live: null,
   pending: [],
   lastSync: null,
@@ -279,6 +283,88 @@ export function setDailyLog(date: string, patch: Partial<Pick<DailyLog, 'water_c
   });
 }
 
+/** يسجّل وقت الوصول. إذا كانت هناك زيارة مفتوحة فلا ينشئ زيارة ثانية. */
+export function startGymVisit(now: Date = new Date()): GymVisit {
+  const d = requireDB();
+  const active = d.visits.find((v) => !v.left_at);
+  if (active) return active;
+  const at = now.toISOString();
+  const row: GymVisit = {
+    id: uuid(),
+    user_id: d.userId,
+    date: todayISO(now),
+    arrived_at: at,
+    left_at: null,
+    duration_seconds: 0,
+    created_at: at,
+    updated_at: at,
+  };
+  commit({
+    ...d,
+    visits: [row, ...d.visits],
+    pending: enqueue(d.pending, { table: 'gym_visits', id: row.id, action: 'upsert' }),
+  });
+  return row;
+}
+
+/** يسجّل المغادرة ويحسب المدة من الطابع الزمني؛ لا يعتمد على بقاء الصفحة مفتوحة. */
+export function endGymVisit(id: string, now: Date = new Date()): GymVisit | null {
+  const d = requireDB();
+  const old = d.visits.find((v) => v.id === id);
+  if (!old) return null;
+  if (old.left_at) return old;
+  const leftAt = now.toISOString();
+  const duration = Math.max(0, Math.round((now.getTime() - Date.parse(old.arrived_at)) / 1000));
+  const row: GymVisit = { ...old, left_at: leftAt, duration_seconds: duration, updated_at: leftAt };
+  commit({
+    ...d,
+    visits: d.visits.map((v) => (v.id === id ? row : v)),
+    pending: enqueue(d.pending, { table: 'gym_visits', id, action: 'upsert' }),
+  });
+  return row;
+}
+
+export function deleteGymVisit(id: string) {
+  const d = requireDB();
+  commit({
+    ...d,
+    visits: d.visits.filter((v) => v.id !== id),
+    pending: enqueue(d.pending, { table: 'gym_visits', id, action: 'delete' }),
+  });
+}
+
+export type AppleHealthInput = Omit<AppleHealthRecord, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+
+/** يحفظ استيراد Apple Health كسجل مستقل تمامًا عن جلسات 45/4. */
+export function saveAppleHealthRecord(input: AppleHealthInput): AppleHealthRecord {
+  const d = requireDB();
+  const same = d.health.find((h) =>
+    h.date === input.date &&
+    h.source_started_at === input.source_started_at &&
+    h.duration_seconds === input.duration_seconds &&
+    h.active_kcal === input.active_kcal &&
+    h.steps === input.steps,
+  );
+  if (same) return same;
+  const at = nowIso();
+  const row: AppleHealthRecord = { id: uuid(), user_id: d.userId, ...input, created_at: at, updated_at: at };
+  commit({
+    ...d,
+    health: [row, ...d.health],
+    pending: enqueue(d.pending, { table: 'apple_health_records', id: row.id, action: 'upsert' }),
+  });
+  return row;
+}
+
+export function deleteAppleHealthRecord(id: string) {
+  const d = requireDB();
+  commit({
+    ...d,
+    health: d.health.filter((h) => h.id !== id),
+    pending: enqueue(d.pending, { table: 'apple_health_records', id, action: 'delete' }),
+  });
+}
+
 export function setLive(live: LiveSession | null) {
   const d = requireDB();
   commit({ ...d, live });
@@ -300,6 +386,8 @@ export interface RemoteSnapshot {
   measurements: Measurement[];
   audio: SavedAudio[];
   logs: DailyLog[];
+  visits: GymVisit[];
+  health: AppleHealthRecord[];
 }
 
 /** الأحدث يفوز (بحسب updated_at)، وما فيه عملية معلّقة محليًا لا يُستبدل */
@@ -330,13 +418,15 @@ export function mergeRemote(remote: RemoteSnapshot) {
   const measurements = mergeList(d.measurements, remote.measurements, (m) => m.id, 'weekly_measurements').sort((a, b) => a.week_start.localeCompare(b.week_start));
   const audio = mergeList(d.audio, remote.audio, (a) => a.id, 'saved_audio');
   const logs = mergeList(d.logs, remote.logs, (l) => l.date, 'daily_logs');
+  const visits = mergeList(d.visits, remote.visits, (v) => v.id, 'gym_visits').sort((a, b) => b.arrived_at.localeCompare(a.arrived_at));
+  const health = mergeList(d.health, remote.health, (h) => h.id, 'apple_health_records').sort((a, b) => b.created_at.localeCompare(a.created_at));
   const settings =
     remote.settings && !pendKey.has(`user_settings:${d.userId}`) && newer(d.settings ?? undefined, remote.settings)
       ? { ...defaultSettings(d.userId), ...remote.settings }
       : d.settings;
   const profile =
     remote.profile && !pendKey.has(`profiles:${d.userId}`) && newer(d.profile ?? undefined, remote.profile) ? remote.profile : d.profile;
-  commit({ ...d, sessions, measurements, audio, logs, settings, profile, lastSync: Date.now() });
+  commit({ ...d, sessions, measurements, audio, logs, visits, health, settings, profile, lastSync: Date.now() });
 }
 
 export function removePending(done: Op[]) {

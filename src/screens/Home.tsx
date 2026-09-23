@@ -5,14 +5,15 @@ import { DAILY_FOCUS, pickByDate } from '../data/nutrition';
 import { DURATION_PICKS, RECITERS } from '../data/audio';
 import { useDerived } from '../lib/derived';
 import { useStartActions } from '../lib/actions';
-import { dismiss, useDB } from '../lib/store';
+import { dismiss, endGymVisit, startGymVisit, useDB } from '../lib/store';
 import { useSyncInfo } from '../lib/sync';
 import { addDaysISO, diffDaysISO, formatGreg, formatHijri, formatHijriMonth, hijriOf, sinceLabel, weekdayName } from '../lib/dates';
 import { currentWeekMessage, monthRecapTarget, monthSummary, nudgeMessage, pastWeekMessage, sessionsWord, weekInfo } from '../lib/week';
-import { CheckMark, Footer, Logo } from '../components/ui';
+import { CheckMark, Footer, Logo, useNow, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Illustration } from '../components/Illustration';
 import { DayPickerSheet, ExtraSheet, ShortSheet, dayIllustrations } from '../components/pickers';
+import { durationLabel, timeLabel } from '../lib/format';
 
 export default function Home() {
   const d = useDerived();
@@ -23,10 +24,28 @@ export default function Home() {
   const [pickOpen, setPickOpen] = useState(false);
   const [shortOpen, setShortOpen] = useState(false);
   const [extraOpen, setExtraOpen] = useState(false);
+  const { toast } = useToast();
 
   const name = db?.profile?.display_name?.trim() || ACTIVE_PROGRAM.defaultName;
   const { today, info, suggested, position, stats, settings } = d;
   const live = db?.live ?? null;
+  const activeVisit = db?.visits.find((v) => !v.left_at) ?? null;
+  const nowMs = useNow(15_000, !!activeVisit);
+  const activeVisitSeconds = activeVisit ? Math.max(0, Math.floor((nowMs - Date.parse(activeVisit.arrived_at)) / 1000)) : 0;
+  const todayVisits = (db?.visits ?? []).filter((v) => v.date === today);
+  const lastEndedToday = todayVisits.find((v) => !!v.left_at) ?? null;
+  const lastHealthToday = (db?.health ?? []).find((h) => h.date === today) ?? null;
+
+  const arriveAtGym = () => {
+    const v = startGymVisit();
+    toast(`تم تسجيل وصولك · ${timeLabel(v.arrived_at)}`);
+  };
+  const leaveGym = () => {
+    if (!activeVisit) return;
+    const v = endGymVisit(activeVisit.id);
+    if (v) toast(`تم تسجيل خروجك · جلست في النادي ${durationLabel(v.duration_seconds)}`);
+  };
+
   const day = suggested ? DAY_BY_ID[suggested] : null;
   const msg = currentWeekMessage(info.count);
   const nudge = nudgeMessage(info.count);
@@ -117,12 +136,19 @@ export default function Home() {
       <header className="home-head">
         <div className="row-between">
           <Logo size={40} />
-          {(offline || pendingCount > 0) && (
-            <span className="tag" title="حالة المزامنة">
-              <Icon name="cloud" size={16} />
-              {offline ? 'بدون اتصال — تُحفظ محليًا' : 'جارٍ المزامنة'}
-            </span>
-          )}
+          <div className="row home-head-actions">
+            {activeVisit && (
+              <button type="button" className="gym-exit-chip" onClick={leaveGym}>
+                خرجت من النادي
+              </button>
+            )}
+            {(offline || pendingCount > 0) && (
+              <span className="tag" title="حالة المزامنة">
+                <Icon name="cloud" size={16} />
+                {offline ? 'بدون اتصال — تُحفظ محليًا' : 'جارٍ المزامنة'}
+              </span>
+            )}
+          </div>
         </div>
         <h1 className="home-hello">السلام عليكم، {name}</h1>
         <div className="home-date">
@@ -130,6 +156,46 @@ export default function Home() {
           <div className="greg muted">{weekdayName(today)} · {formatGreg(today)} م</div>
         </div>
       </header>
+
+      {/* تسجيل الحضور مستقل عن نوع التمرين */}
+      <section className={`gym-checkin ${activeVisit ? 'active' : ''}`} aria-label="تسجيل الحضور في النادي">
+        {activeVisit ? (
+          <>
+            <div className="gym-checkin-row">
+              <div>
+                <div className="gym-checkin-kicker">أنت في النادي الآن</div>
+                <div className="gym-checkin-time num">{durationLabel(activeVisitSeconds)}</div>
+              </div>
+              <span className="gym-checkin-dot" aria-hidden="true" />
+            </div>
+            <div className="gym-checkin-meta">
+              وصلت {timeLabel(activeVisit.arrived_at)} · يمكنك إغلاق الموقع، فالمدة تُحسب من وقت الوصول المحفوظ.
+            </div>
+          </>
+        ) : (
+          <>
+            <button type="button" className="gym-arrive-btn" onClick={arriveAtGym}>
+              <span>وصلت النادي</span><Icon name="check" size={26} strokeWidth={3} />
+            </button>
+            <div className="gym-checkin-meta">اضغطها عند وصولك فقط — ولا تؤثر على تمرين اليوم أو احتساب 4/4.</div>
+            {lastEndedToday && (
+              <div className="gym-last-visit">
+                آخر زيارة اليوم: {timeLabel(lastEndedToday.arrived_at)} ← {timeLabel(lastEndedToday.left_at)} · <b>{durationLabel(lastEndedToday.duration_seconds)}</b>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      <Link to="/apple-health" className="apple-optional">
+        <span className="apple-mark"></span>
+        <span className="grow">
+          <b>بيانات Apple Health</b>
+          <small>{lastHealthToday ? `آخر استيراد اليوم · ${durationLabel(lastHealthToday.duration_seconds)}` : 'استيراد اختياري — لا يغيّر نشاطك ولا تمرينك'}</small>
+        </span>
+        <span className="tag tag-cold">اختياري</span>
+        <Icon name="chevL" className="chev" />
+      </Link>
 
       {/* 1) تمرين اليوم */}
       {live ? (

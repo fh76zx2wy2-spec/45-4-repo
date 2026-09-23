@@ -233,3 +233,83 @@ details.card > summary::-webkit-details-marker { display: none; }
 @media (min-width: 420px) { .edit-grid { grid-template-columns: 1fr 1fr; } .edit-grid .field:first-child { grid-column: 1 / -1; } }
 
 .timed-ill { max-width: 210px; margin: 0 auto 12px; background: var(--tile); }
+
+/* ============================ الحضور في النادي ============================ */
+.home-head-actions { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.gym-exit-chip {
+  min-height: 36px; padding: 0 12px; border-radius: 999px;
+  background: var(--danger-soft); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+  font-weight: 800; font-size: 13px; white-space: nowrap;
+}
+.gym-exit-chip:active { transform: scale(.96); }
+
+.gym-checkin {
+  border: 1px solid color-mix(in srgb, var(--cold) 28%, var(--line));
+  border-radius: var(--r-lg); padding: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cold-soft) 75%, var(--surface)), var(--surface));
+  box-shadow: var(--shadow-1);
+}
+.gym-checkin.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cold) 15%, var(--surface)), var(--surface));
+  border-color: color-mix(in srgb, var(--cold) 45%, var(--line));
+}
+.gym-arrive-btn {
+  width: 100%; min-height: 64px; border-radius: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  background: var(--cold); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 23px;
+  box-shadow: 0 14px 28px -18px rgba(28, 75, 66, .8);
+  transition: transform .18s var(--ease), filter .2s;
+}
+.gym-arrive-btn:active { transform: scale(.975); }
+.gym-checkin-meta { margin-top: 9px; color: var(--muted); font-size: 12.8px; line-height: 1.65; text-align: center; }
+.gym-checkin-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.gym-checkin-kicker { color: var(--cold-ink); font-weight: 800; font-size: 14px; }
+.gym-checkin-time { font-family: var(--font-display); font-size: 31px; font-weight: 900; line-height: 1.25; color: var(--ink); margin-top: 2px; }
+.gym-checkin-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--cold); position: relative; flex: none; }
+.gym-checkin-dot::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--cold) 45%, transparent); animation: ringPulse 1.6s ease-out infinite; }
+.gym-last-visit { margin-top: 9px; text-align: center; font-size: 12.8px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px; padding: 7px 10px; }
+
+.apple-optional {
+  display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 10px 14px;
+  border-radius: 18px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-1);
+}
+.apple-optional:active { transform: scale(.985); }
+.apple-optional b { display: block; font-size: 15px; line-height: 1.35; }
+.apple-optional small { display: block; color: var(--muted); font-size: 11.8px; line-height: 1.45; margin-top: 2px; }
+.apple-mark { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 25px; line-height: 1; flex: none; }
+.apple-mark.big { font-size: 31px; vertical-align: -3px; margin-inline-end: 4px; }
+
+/* مؤشرات الحضور داخل التقويم */
+.cal-cell .visit-mark {
+  position: absolute; bottom: 3px; inset-inline-end: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ink); color: var(--bg); box-shadow: 0 0 0 1.5px var(--surface);
+}
+.cal-cell.base .visit-mark, .cal-cell.extra .visit-mark { background: #fff; color: var(--cold-deep); box-shadow: 0 0 0 1.5px rgba(0,0,0,.1); }
+.lg.visit { background: var(--ink); }
+.calendar-attendance-summary { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: var(--cold-soft); color: var(--cold-ink); font-size: 13.5px; }
+.calendar-visit-detail { display: flex; flex-direction: column; gap: 8px; }
+.visit-detail-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--cold-soft); border-radius: 16px; color: var(--cold-ink); }
+.visit-detail-row .ic { width: 38px; height: 38px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--cold-ink); flex: none; }
+.visit-detail-row .ic svg { width: 20px; height: 20px; }
+.visit-detail-row .t { font-weight: 800; font-size: 14.5px; }
+.visit-detail-row .s { font-size: 12.8px; opacity: .85; }
+
+/* ============================ Apple Health ============================ */
+.apple-health-hero { overflow: hidden; }
+.apple-health-title { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1.3; }
+.apple-help { margin-top: 4px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 13.5px; line-height: 1.8; }
+.apple-health-list { display: flex; flex-direction: column; gap: 10px; }
+.apple-health-record { border: 1px solid var(--line); border-radius: 16px; padding: 13px; background: var(--surface-2); }
+.apple-health-record > .row-between > div > b { font-size: 15.5px; }
+.apple-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.apple-metrics > span { padding: 9px 10px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line-2); }
+.apple-metrics b { display: block; font-family: var(--font-display); font-size: 17px; line-height: 1.3; }
+.apple-metrics small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+@media (max-width: 380px) {
+  .home-head-actions .tag { display: none; }
+  .apple-optional .tag { display: none; }
+  .gym-checkin-time { font-size: 27px; }
+}

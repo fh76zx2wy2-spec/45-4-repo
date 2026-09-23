@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DURATION_PICKS, RECITERS, reciterGeneralSearchUrl, reciterSearchUrl, type AudioSection } from '../data/audio';
+import { DURATION_PICKS, RECITERS, reciterGeneralSearchUrl, reciterSearchUrl, type AudioSection, type DurationPick, type Reciter } from '../data/audio';
 import { addAudio, removeAudio, useDB } from '../lib/store';
 import { parseLink, play, playlistEmbed } from '../lib/player';
 import type { SavedAudio } from '../lib/types';
@@ -89,6 +89,66 @@ function AddSheet({ open, onClose, section }: { open: boolean; onClose: () => vo
   );
 }
 
+
+function RecitationPickerSheet({
+  pick,
+  reciter,
+  onClose,
+}: {
+  pick: DurationPick | null;
+  reciter: Reciter;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  if (!pick) return null;
+
+  function start(listId: string, listTitle: string) {
+    play({
+      src: playlistEmbed(listId),
+      title: listTitle,
+      sub: `${reciter.name} · تشغيل داخل 45/4`,
+      provider: 'youtube',
+    });
+    onClose();
+    toast('بدأ التشغيل داخل 45/4');
+  }
+
+  return (
+    <Sheet open={!!pick} onClose={onClose} title={`${pick.title} · ${pick.approx}`}>
+      <div className="card" style={{ padding: 14 }}>
+        <div className="t" style={{ fontWeight: 700, marginBottom: 4 }}>استماع بدون مغادرة الصفحة</div>
+        <p className="muted" style={{ fontSize: 13 }}>
+          اختر إحدى قوائم {reciter.name}. سيظهر المشغّل داخل 45/4 ويستمر أثناء تنقلك بين صفحات الموقع.
+        </p>
+      </div>
+
+      <div className="stack" style={{ gap: 8 }}>
+        {reciter.playlists.map((pl) => (
+          <button key={pl.listId} className="list-row card" style={{ padding: '10px 12px' }} onClick={() => start(pl.listId, pl.title)}>
+            <span className="ic cold"><Icon name="play" /></span>
+            <div className="grow">
+              <div className="t">{pl.title}</div>
+              <div className="s">{reciter.name} · داخل الموقع</div>
+            </div>
+            <Icon name="headphones" className="chev" />
+          </button>
+        ))}
+      </div>
+
+      <div className="row" style={{ justifyContent: 'center', marginTop: 2 }}>
+        <a
+          className="btn btn-sm btn-ghost"
+          href={reciterSearchUrl(reciter, pick.surahs)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Icon name="search" size={17} /> بحث YouTube عن السورة (اختياري)
+        </a>
+      </div>
+    </Sheet>
+  );
+}
+
 export default function Listen() {
   const nav = useNavigate();
   const db = useDB();
@@ -97,6 +157,7 @@ export default function Listen() {
   const [minutes, setMinutes] = useState<20 | 45>(20);
   const [rid, setRid] = useState(RECITERS[0].id);
   const [addOpen, setAddOpen] = useState(false);
+  const [recitationPick, setRecitationPick] = useState<DurationPick | null>(null);
   const reciter = RECITERS.find((r) => r.id === rid)!;
   const saved = db?.audio ?? [];
   const picks = DURATION_PICKS.filter((p) => p.minutes === minutes);
@@ -135,14 +196,17 @@ export default function Listen() {
             </div>
             <div className="stack" style={{ gap: 0 }}>
               {picks.map((p) => (
-                <a key={p.title} className="list-row" style={{ padding: '10px 0' }} href={reciterSearchUrl(reciter, p.surahs)} target="_blank" rel="noopener noreferrer">
+                <button key={p.title} className="list-row" style={{ padding: '10px 0' }} onClick={() => setRecitationPick(p)}>
                   <span className="ic cold"><Icon name="headphones" /></span>
-                  <div className="grow"><div className="t">{p.title}</div><div className="s">بصوت {reciter.name} · {p.approx} (تقريبي)</div></div>
-                  <Icon name="external" className="chev" />
-                </a>
+                  <div className="grow">
+                    <div className="t">{p.title}</div>
+                    <div className="s">بصوت {reciter.name} · {p.approx} · تشغيل داخل 45/4</div>
+                  </div>
+                  <Icon name="play" className="chev" />
+                </button>
               ))}
             </div>
-            <p className="muted" style={{ fontSize: 12.5 }}>المدد تقريبية وتختلف بحسب القارئ؛ تفتح نتائج البحث في YouTube لتختار التسجيل الذي تريده.</p>
+            <p className="muted" style={{ fontSize: 12.5 }}>المدد تقريبية. الضغط على الاقتراح يفتح قوائم القارئ داخل 45/4 دون مغادرة الصفحة، ويبقى بحث YouTube خيارًا ثانويًا فقط.</p>
           </section>
 
           <section className="card">
@@ -202,6 +266,7 @@ export default function Listen() {
       )}
 
       <AddSheet open={addOpen} onClose={() => setAddOpen(false)} section={tab} />
+      <RecitationPickerSheet pick={recitationPick} reciter={reciter} onClose={() => setRecitationPick(null)} />
     </div>
   );
 }

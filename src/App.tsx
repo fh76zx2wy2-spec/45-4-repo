@@ -24,6 +24,7 @@ const History = lazy(() => import('./screens/History'));
 const SessionDetail = lazy(() => import('./screens/SessionDetail'));
 const Settings = lazy(() => import('./screens/Settings'));
 const ProgramEditor = lazy(() => import('./screens/ProgramEditor'));
+const AppleHealth = lazy(() => import('./screens/AppleHealth'));
 
 function Splash() {
   return (
@@ -101,6 +102,7 @@ export default function App() {
         <Route path="devices/:id" element={<DeviceDetail />} />
         <Route path="listen" element={<Listen />} />
         <Route path="progress" element={<Progress />} />
+        <Route path="apple-health" element={<AppleHealth />} />
         <Route path="program" element={<ProgramScreen />} />
         <Route path="history" element={<History />} />
         <Route path="history/:id" element={<SessionDetail />} />
