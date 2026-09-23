@@ -28,7 +28,10 @@ const AppleHealth = lazy(() => import('./screens/AppleHealth'));
 
 function Splash() {
   return (
-    <div className="splash">
+    <div className="splash splash-45">
+      <span className="splash-dot d1" />
+      <span className="splash-dot d2" />
+      <span className="splash-dot d3" />
       <Logo size={72} />
     </div>
   );

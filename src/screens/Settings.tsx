@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ACTIVE_PROGRAM, SAFETY_NOTE } from '../data/program';
 import { useAuth } from '../lib/auth';
-import { exportAll, saveProfile, saveSettings, useDB } from '../lib/store';
+import { exportAll, saveSettings, useDB } from '../lib/store';
 import { syncNow, useSyncInfo } from '../lib/sync';
 import { applyTheme, type ThemePref } from '../lib/theme';
 import { isIOS, useInstall } from '../lib/pwa';
@@ -19,7 +19,6 @@ export default function Settings() {
   const { toast } = useToast();
   const install = useInstall();
   const s = d.settings;
-  const [name, setName] = useState(db?.profile?.display_name ?? ACTIVE_PROGRAM.defaultName);
   const [outOpen, setOutOpen] = useState(false);
   const pending = db?.pending.length ?? 0;
 
@@ -67,21 +66,10 @@ export default function Settings() {
             </button>
           ))}
         </div>
-        <div>
-          <div className="label" style={{ marginBottom: 8 }}>بداية الأسبوع</div>
-          <div className="seg" role="group" aria-label="بداية الأسبوع">
-            {(
-              [
-                [0, 'الأحد'],
-                [1, 'الاثنين'],
-                [6, 'السبت'],
-              ] as [number, string][]
-            ).map(([k, label]) => (
-              <button key={k} className={s.week_start === k ? 'on' : ''} aria-pressed={s.week_start === k} onClick={() => saveSettings({ week_start: k })}>
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="note-box cold">
+          <div className="label">أسبوع 45/4</div>
+          <b>الأحد ← السبت</b>
+          <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>الهدف ثابت: إكمال 4 أيام قبل نهاية السبت، ثم يبدأ أسبوع جديد صباح الأحد.</div>
         </div>
       </section>
 
@@ -124,13 +112,7 @@ export default function Settings() {
 
       <section className="card stack">
         <div className="card-title">الحساب</div>
-        <div className="field">
-          <label htmlFor="dn">الاسم في التحية</label>
-          <div className="row" style={{ gap: 8 }}>
-            <input id="dn" className="input grow" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
-            <button className="btn btn-ghost" disabled={!name.trim() || name.trim() === (db?.profile?.display_name ?? ACTIVE_PROGRAM.defaultName)} onClick={() => { saveProfile(name.trim()); toast('تم الحفظ'); }}>حفظ</button>
-          </div>
-        </div>
+        <div className="stat-line"><Icon name="target" /><span>الهوية: <b>الكوتش / {ACTIVE_PROGRAM.defaultName}</b></span></div>
         <div className="stat-line"><Icon name="link" /><span className="ltr" dir="ltr" style={{ overflowWrap: 'anywhere' }}>{user?.email}</span></div>
         <div className="row-between">
           <div className="stat-line"><Icon name="cloud" /><span>{syncLabel}{offlineSession ? ' · جلسة محفوظة' : ''}</span></div>

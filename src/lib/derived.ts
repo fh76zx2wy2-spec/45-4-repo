@@ -26,9 +26,11 @@ export function useDerived() {
   const db = useDB();
   const today = useToday();
   return useMemo(() => {
-    const settings = db?.settings ?? defaultSettings(db?.userId ?? 'x');
+    const rawSettings = db?.settings ?? defaultSettings(db?.userId ?? 'x');
+    // قاعدة 45/4 ثابتة: الأسبوع من الأحد إلى السبت دائمًا.
+    const settings = { ...rawSettings, week_start: 0 };
     const sessions: Session[] = db?.sessions ?? [];
-    const weekStartDay = settings.week_start;
+    const weekStartDay = 0;
     const curWeekStart = weekStartOf(today, weekStartDay);
     const info = weekInfo(sessions, curWeekStart);
     const position = programPosition(settings, sessions, today);

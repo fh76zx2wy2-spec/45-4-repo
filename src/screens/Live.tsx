@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { DAY_BY_ID, EXTRA_BY_ID, READY_CHECKLIST } from '../data/program';
-import { consumeComeback, getDB, saveSettings, saveSession, setLive, useDB } from '../lib/store';
+import { consumeComeback, deleteGymVisit, getDB, saveSettings, saveSession, setLive, useDB } from '../lib/store';
 import { useDerived, shouldHintWeight } from '../lib/derived';
 import {
   addRest,
@@ -59,6 +59,7 @@ const seenReady = (id: string) => {
 
 function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r: SaveResult) => void; onLeave: () => void }) {
   const d = useDerived();
+  const db = useDB();
   const nav = useNavigate();
   const settings = d.settings;
   const vib = settings.vibration;
@@ -339,6 +340,16 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
 
   const meaningful = hasMeaningfulProgress(live, now);
   const pct = Math.round(progressFraction(live) * 100);
+  const activeVisit = db?.visits.find((v) => !v.left_at) ?? null;
+  const undoArrival = () => {
+    if (!activeVisit) return;
+    if (!window.confirm('هل ضغطت «وصلت النادي» بالغلط؟ سيُحذف تسجيل الوصول فقط.')) return;
+    deleteGymVisit(activeVisit.id);
+    if (!meaningful) {
+      setLive(null);
+      nav('/', { replace: true });
+    }
+  };
 
   return (
     <div className="live">
@@ -375,6 +386,9 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
             <div className={inCardio ? 'cur' : ''}><i style={{ width: `${timedFrac(cardioSt) * 100}%` }} /><span>كارديو</span></div>
             <div className={inStretch ? 'cur' : ''}><i style={{ width: `${timedFrac(stretchSt) * 100}%` }} /><span>إطالة</span></div>
           </div>
+        )}
+        {activeVisit && (
+          <button type="button" className="live-undo-arrival" onClick={undoArrival}>وصلت بالغلط؟ تراجع</button>
         )}
       </header>
 

@@ -107,3 +107,10 @@
 .note-box.hot { background: var(--hot-soft); border-color: transparent; color: var(--hot-ink); }
 .note-box.cold { background: var(--cold-soft); border-color: transparent; color: var(--cold-ink); }
 .badge-guide { font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: var(--cold-soft); color: var(--cold-ink); }
+.splash-45 { position: relative; overflow: hidden; }
+.splash-45 .logo { position: relative; z-index: 2; }
+.splash-dot { position: absolute; border-radius: 50%; opacity: .16; filter: blur(.5px); animation: splashDrift 7s ease-in-out infinite; }
+.splash-dot.d1 { width: 180px; height: 180px; background: var(--cold); inset-inline-start: -70px; top: 18%; }
+.splash-dot.d2 { width: 120px; height: 120px; background: var(--hot); inset-inline-end: -40px; bottom: 22%; animation-delay: -2.5s; }
+.splash-dot.d3 { width: 62px; height: 62px; background: var(--sand); inset-inline-start: 24%; bottom: 11%; animation-delay: -4s; }
+@keyframes splashDrift { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(20px,-16px,0) scale(1.12); } }

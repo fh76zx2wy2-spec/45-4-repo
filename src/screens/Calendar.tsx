@@ -152,7 +152,7 @@ export default function CalendarScreen() {
           <span><i className="lg visit" /> تسجيل حضور</span>
         </div>
         <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-          الرقم الكبير هجري (أم القرى) والصغير ميلادي. العمود الجانبي يعرض إنجاز كل أسبوع.
+          الرقم الكبير هجري (أم القرى) والصغير ميلادي. كل صف أسبوع ثابت من الأحد إلى السبت، والعمود الجانبي يقيس إنجاز 4/4.
         </p>
       </section>
 

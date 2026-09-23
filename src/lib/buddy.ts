@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 import { useAuth } from './auth';
 
-export type BuddyReactionKind = 'kfu' | 'fire';
+export type BuddyReactionKind = 'kfu' | 'fire' | 'beatme' | 'yourturn' | 'beast4';
 
 export interface BuddyStat {
   user_id: string;
@@ -12,6 +12,10 @@ export interface BuddyStat {
   weekly_visits: number;
   weekly_visit_seconds: number;
   last_arrived_at: string | null;
+  last_left_at: string | null;
+  last_visit_seconds: number;
+  in_gym: boolean;
+  active_arrived_at: string | null;
   streak_4of4: number;
 }
 
@@ -21,6 +25,14 @@ export interface BuddyReaction {
   kind: BuddyReactionKind;
   created_at: string;
 }
+
+export const BUDDY_REACTION_LABEL: Record<BuddyReactionKind, string> = {
+  kfu: '👏 كفو',
+  fire: '🔥 شد حيلك',
+  beatme: '😅 سبقتني',
+  yourturn: '👉 اليوم عليك',
+  beast4: '🔥 4/4 يا وحش',
+};
 
 export function useBuddy() {
   const { user } = useAuth();
@@ -47,7 +59,9 @@ export function useBuddy() {
         weekly_sessions: Number(x.weekly_sessions ?? 0),
         weekly_visits: Number(x.weekly_visits ?? 0),
         weekly_visit_seconds: Number(x.weekly_visit_seconds ?? 0),
+        last_visit_seconds: Number(x.last_visit_seconds ?? 0),
         streak_4of4: Number(x.streak_4of4 ?? 0),
+        in_gym: Boolean(x.in_gym),
       })));
       setReactions((r.data ?? []) as BuddyReaction[]);
       setError(null);
@@ -60,7 +74,7 @@ export function useBuddy() {
 
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 60_000);
+    const timer = window.setInterval(() => void refresh(), 30_000);
     return () => window.clearInterval(timer);
   }, [refresh]);
 

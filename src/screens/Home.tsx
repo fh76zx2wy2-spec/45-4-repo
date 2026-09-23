@@ -9,12 +9,16 @@ import { deleteGymVisit, dismiss, endGymVisit, startGymVisit, useDB } from '../l
 import { useSyncInfo } from '../lib/sync';
 import { addDaysISO, diffDaysISO, formatGreg, formatHijri, formatHijriMonth, hijriOf, sinceLabel, weekdayName } from '../lib/dates';
 import { currentWeekMessage, monthRecapTarget, monthSummary, nudgeMessage, pastWeekMessage, sessionsWord, weekInfo } from '../lib/week';
-import { CheckMark, Footer, Logo, useNow, useToast } from '../components/ui';
+import { CheckMark, Footer, Logo, Sheet, useNow, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Illustration } from '../components/Illustration';
 import { DayPickerSheet, ExtraSheet, ShortSheet, dayIllustrations } from '../components/pickers';
 import { durationLabel, timeLabel } from '../lib/format';
-import { useBuddy } from '../lib/buddy';
+import { BUDDY_REACTION_LABEL, useBuddy, type BuddyReactionKind } from '../lib/buddy';
+import { buildAchievements } from '../lib/achievements';
+import { coachName, dayIcon, motivationForDate, timeGreeting } from '../lib/profile';
+import { usePrivateProfilePhoto } from '../lib/privateProfilePhoto';
+import { downloadGymSummaryCard, shareGymSummary, type GymSummaryShare } from '../lib/shareCard';
 
 export default function Home() {
   const d = useDerived();
@@ -25,11 +29,12 @@ export default function Home() {
   const [pickOpen, setPickOpen] = useState(false);
   const [shortOpen, setShortOpen] = useState(false);
   const [extraOpen, setExtraOpen] = useState(false);
+  const [exitSummary, setExitSummary] = useState<GymSummaryShare | null>(null);
   const { toast } = useToast();
   const buddy = useBuddy();
 
-  const name = db?.profile?.display_name?.trim() || ACTIVE_PROGRAM.defaultName;
-  const { today, info, suggested, position, stats, settings } = d;
+  const name = coachName();
+  const { today, info, suggested, position, stats, settings, curWeekStart, trainedToday } = d;
   const live = db?.live ?? null;
   const activeVisit = db?.visits.find((v) => !v.left_at) ?? null;
   const nowMs = useNow(15_000, !!activeVisit);
@@ -39,15 +44,48 @@ export default function Home() {
   const lastHealthToday = (db?.health ?? []).find((h) => h.date === today) ?? null;
   const buddyMe = buddy.me;
   const buddyMate = buddy.buddy;
+  const coachPhoto = usePrivateProfilePhoto();
+  const timeHello = timeGreeting();
+  const motivation = motivationForDate(today);
+  const achievements = buildAchievements(db?.sessions ?? [], db?.visits ?? [], buddyMe?.streak_4of4 ?? stats.streak.current, stats.weeksComplete);
+  const isRestDay = d.advice.kind === 'rest' && !trainedToday && !info.complete;
+  const todayIcon = dayIcon(suggested, isRestDay);
 
   const arriveAtGym = () => {
     const v = startGymVisit();
-    toast(`تم تسجيل وصولك · ${timeLabel(v.arrived_at)}`);
+    toast(`بدأ الوقت، الله يقويك · وصلت ${timeLabel(v.arrived_at)}`);
+    void buddy.refresh();
+    // وضع النادي: بمجرد الوصول نفتح جلسة اليوم مباشرة إن لم تكن هناك جلسة جارية.
+    if (live) {
+      window.setTimeout(() => nav('/live'), 320);
+    } else if (suggested) {
+      window.setTimeout(() => act.startDay(suggested), 420);
+    }
   };
   const leaveGym = () => {
     if (!activeVisit) return;
+    const liveSnapshot = db?.live;
+    const latestSaved = (db?.sessions ?? []).filter((s) => s.date === today).sort((a, b) => b.ended_at.localeCompare(a.ended_at))[0];
+    const exercises = liveSnapshot
+      ? liveSnapshot.stages.filter((s) => s.kind === 'exercise' && s.status !== 'pending').length
+      : latestSaved?.exercises.filter((e) => e.status === 'done' || e.status === 'partial').length ?? 0;
+    const sets = liveSnapshot
+      ? liveSnapshot.stages.filter((s) => s.kind === 'exercise').reduce((sum, s) => sum + s.setsDone, 0)
+      : latestSaved?.exercises.reduce((sum, e) => sum + e.sets_done, 0) ?? 0;
     const v = endGymVisit(activeVisit.id);
-    if (v) toast(`تم تسجيل خروجك · جلست في النادي ${durationLabel(v.duration_seconds)}`);
+    if (v) {
+      const summary: GymSummaryShare = {
+        coach: name,
+        dateLabel: `${weekdayName(today)} · ${formatGreg(today)} م`,
+        durationLabel: durationLabel(v.duration_seconds),
+        exercises,
+        sets,
+        weekCount: info.count,
+      };
+      setExitSummary(summary);
+      toast(`تم تسجيل خروجك · جلست في النادي ${summary.durationLabel}`);
+      void buddy.refresh();
+    }
   };
   const undoArrival = () => {
     if (!activeVisit) return;
@@ -55,10 +93,10 @@ export default function Home() {
     deleteGymVisit(activeVisit.id);
     toast('تم التراجع عن تسجيل الوصول');
   };
-  const sendBuddyReaction = async (kind: 'kfu' | 'fire') => {
+  const sendBuddyReaction = async (kind: BuddyReactionKind) => {
     try {
       const who = await buddy.sendReaction(kind);
-      toast(kind === 'kfu' ? `أرسلت 👏 كفو إلى ${who}` : `أرسلت 🔥 شد حيلك إلى ${who}`);
+      toast(`أرسلت ${BUDDY_REACTION_LABEL[kind]} إلى ${who}`);
     } catch {
       toast('تعذّر إرسال التشجيع الآن');
     }
@@ -150,9 +188,11 @@ export default function Home() {
 
   return (
     <div className="page stack">
-      {/* الرأس */}
-      <header className="home-head">
-        <div className="row-between">
+      {/* هوية الكوتش */}
+      <header className={`coach-hero ${ACTIVE_PROGRAM.key}`}>
+        <span className="coach-orb orb-a" aria-hidden="true" />
+        <span className="coach-orb orb-b" aria-hidden="true" />
+        <div className="coach-top row-between">
           <Logo size={40} />
           <div className="row home-head-actions">
             {activeVisit && (
@@ -161,17 +201,31 @@ export default function Home() {
               </button>
             )}
             {(offline || pendingCount > 0) && (
-              <span className="tag" title="حالة المزامنة">
+              <span className="tag coach-sync" title="حالة المزامنة">
                 <Icon name="cloud" size={16} />
-                {offline ? 'بدون اتصال — تُحفظ محليًا' : 'جارٍ المزامنة'}
+                {offline ? 'بدون اتصال' : 'جارٍ المزامنة'}
               </span>
             )}
           </div>
         </div>
-        <h1 className="home-hello">السلام عليكم، {name}</h1>
-        <div className="home-date">
-          <div className="hijri">{formatHijri(today)}</div>
-          <div className="greg muted">{weekdayName(today)} · {formatGreg(today)} م</div>
+        <div className="coach-main">
+          <div className="coach-copy">
+            <div className="coach-kicker">{timeHello}</div>
+            <h1 className="coach-name">الكوتش <span>/</span> {name}</h1>
+            <p className="coach-quote">«{motivation}»</p>
+            <div className="coach-date">
+              <b>{formatHijri(today)}</b>
+              <span>{weekdayName(today)} · {formatGreg(today)} م</span>
+            </div>
+          </div>
+          <div className="coach-photo-wrap">
+            {coachPhoto ? (
+              <img src={coachPhoto} alt={`صورة الكوتش ${name}`} className="coach-photo" />
+            ) : (
+              <div className="coach-photo coach-photo-placeholder" aria-label={`صورة الكوتش ${name}`}>{name.slice(0, 1)}</div>
+            )}
+            <span className="coach-photo-badge">45/4</span>
+          </div>
         </div>
       </header>
 
@@ -215,6 +269,25 @@ export default function Home() {
         <span className="tag tag-cold">اختياري</span>
         <Icon name="chevL" className="chev" />
       </Link>
+
+      {/* اليوم باختصار */}
+      <section className={`today-brief ${isRestDay ? 'rest' : info.complete ? 'complete' : ''}`}>
+        <span className="today-brief-icon"><Icon name={todayIcon} /></span>
+        <div className="grow">
+          <div className="eyebrow">اليوم باختصار</div>
+          <div className="today-brief-title">
+            {info.complete ? 'أسبوعك مكتمل 4/4 ✅' : isRestDay ? 'راحة واستشفاء 🌿' : day ? `اليوم ${day.id} — ${day.focus}` : 'جاهز للأسبوع'}
+          </div>
+          <div className="today-brief-meta">
+            {info.complete
+              ? 'الباقي اختياري: راحة أو جلسة خفيفة'
+              : isRestDay
+                ? `تمرينك القادم: ${day?.focus ?? 'حسب خطتك'} · ${SESSION_STRUCTURE.total} دقيقة`
+                : `${SESSION_STRUCTURE.total} دقيقة · ${activeVisit ? 'أنت في النادي الآن' : trainedToday ? 'تمرين اليوم مكتمل' : 'بانتظار حضورك'}`}
+          </div>
+        </div>
+        <span className="today-brief-score num">{info.count}/4</span>
+      </section>
 
       {/* 1) تمرين اليوم */}
       {live ? (
@@ -277,18 +350,24 @@ export default function Home() {
         </section>
       )}
 
-      {/* 2) تقدّم الأسبوع */}
-      <section className="card" aria-label="تقدّم الأسبوع">
+      {/* 2) تقدّم الأسبوع — الأحد إلى السبت دائمًا */}
+      <section className={`card week-card ${info.complete ? 'is-complete' : ''}`} aria-label="تقدّم الأسبوع">
+        {info.complete && (
+          <div className="week-confetti" aria-hidden="true">
+            {Array.from({ length: 10 }, (_, i) => <i key={i} />)}
+          </div>
+        )}
         <div className="row-between">
           <div>
-            <div className="eyebrow">هذا الأسبوع</div>
+            <div className="eyebrow">هذا الأسبوع · الأحد ← السبت</div>
             <div className="week-big disp">
               <span className="num">{info.count}/{WEEKLY_GOAL}</span>
             </div>
+            <div className="week-range">{formatGreg(curWeekStart)} — {formatGreg(addDaysISO(curWeekStart, 6))}</div>
           </div>
           <div className="week-msg">
-            <div className="t">{msg.title}</div>
-            <div className="muted" style={{ fontSize: 13.5 }}>{info.complete && info.extras.length ? '4/4 ✓ + جلسة إضافية' : msg.sub}</div>
+            <div className="t">{info.complete ? 'أسبوع كامل ✅' : msg.title}</div>
+            <div className="muted" style={{ fontSize: 13.5 }}>{info.complete ? '4 أيام من الأحد إلى السبت — ممتاز' : msg.sub}</div>
           </div>
         </div>
         <div className="bar" style={{ marginTop: 14 }} role="progressbar" aria-valuemin={0} aria-valuemax={WEEKLY_GOAL} aria-valuenow={info.count}>
@@ -334,6 +413,26 @@ export default function Home() {
 
       {notice}
 
+      {/* الإنجازات — تحفيز خفيف بلا تسجيل أوزان أو بيانات صحية */}
+      <section className="card achievement-card" aria-label="الإنجازات والشارات">
+        <div className="row-between" style={{ marginBottom: 12 }}>
+          <div>
+            <div className="eyebrow">شاراتك</div>
+            <div className="card-title">إنجازات 45/4 🏆</div>
+          </div>
+          <span className="tag tag-cold">{achievements.filter((a) => a.unlocked).length}/{achievements.length}</span>
+        </div>
+        <div className="achievement-grid">
+          {achievements.map((a) => (
+            <div key={a.id} className={`achievement ${a.unlocked ? 'on' : 'off'}`}>
+              <span className="achievement-icon"><Icon name={a.icon} /></span>
+              <div><b>{a.title}</b><small>{a.detail}</small></div>
+              {a.unlocked && <span className="achievement-check"><Icon name="check" size={13} /></span>}
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* أنا وعبدالسلام — تحفيز فقط، دون أي بيانات صحية خاصة */}
       <section className="card buddy-card" aria-label="أنا وعبدالسلام">
         <div className="row-between buddy-head">
@@ -346,7 +445,7 @@ export default function Home() {
 
         {buddy.latestReaction && (
           <div className="buddy-received">
-            {buddy.latestReaction.kind === 'kfu' ? '👏' : '🔥'} {buddy.latestReaction.sender_name} أرسل لك {buddy.latestReaction.kind === 'kfu' ? 'كفو' : 'شد حيلك'}
+            {buddy.latestReaction.sender_name} أرسل لك: {BUDDY_REACTION_LABEL[buddy.latestReaction.kind]}
           </div>
         )}
 
@@ -356,10 +455,22 @@ export default function Home() {
           <div className="muted" style={{ fontSize: 13.5 }}>تعذّر تحميل التحدي الآن. جرّب التحديث بعد قليل.</div>
         ) : (
           <>
+            {buddyMate.in_gym ? (
+              <div className="buddy-live-banner">
+                <span className="buddy-live-dot" />
+                <b>{buddyMate.display_name} في النادي الآن 🔥</b>
+                <span>منذ {buddyMate.active_arrived_at ? timeLabel(buddyMate.active_arrived_at) : 'قليل'}</span>
+              </div>
+            ) : buddyMate.last_left_at ? (
+              <div className="buddy-last-banner">
+                {buddyMate.display_name} أنهى آخر زيارة · {durationLabel(buddyMate.last_visit_seconds)} 👏
+              </div>
+            ) : null}
+
             <div className="buddy-grid">
               {[buddyMe, buddyMate].map((b) => (
-                <div className="buddy-person" key={b.user_id}>
-                  <div className="buddy-name">{b.user_id === buddyMe.user_id ? 'أنت' : b.display_name}</div>
+                <div className={`buddy-person ${b.in_gym ? 'active' : ''}`} key={b.user_id}>
+                  <div className="buddy-name">{b.user_id === buddyMe.user_id ? 'أنت' : b.display_name}{b.in_gym ? ' · بالنادي' : ''}</div>
                   <div className="buddy-score num">{b.weekly_sessions}/4</div>
                   <div className="buddy-mini"><span>الزيارات</span><b className="num">{b.weekly_visits}</b></div>
                   <div className="buddy-mini"><span>وقت النادي</span><b>{durationLabel(b.weekly_visit_seconds)}</b></div>
@@ -369,6 +480,7 @@ export default function Home() {
               ))}
             </div>
             <div className="buddy-challenge">
+              <span className="buddy-challenge-label">تحدي الأسبوع · أول من يصل 4/4</span>
               {buddyMe.weekly_sessions === 4 && buddyMate.weekly_sessions === 4
                 ? '🏆 أنتم الاثنين أكملتوا 4/4 هذا الأسبوع'
                 : buddyMe.weekly_sessions === buddyMate.weekly_sessions
@@ -377,11 +489,14 @@ export default function Home() {
                     ? `أنت متقدم ${buddyMe.weekly_sessions} مقابل ${buddyMate.weekly_sessions} — حافظ على التقدم 💪`
                     : `${buddyMate.display_name} متقدم ${buddyMate.weekly_sessions} مقابل ${buddyMe.weekly_sessions} — الحق به 😄`}
             </div>
-            <div className="buddy-actions">
-              <button type="button" className="btn btn-soft" disabled={!!buddy.sending} onClick={() => void sendBuddyReaction('kfu')}>👏 كفو</button>
-              <button type="button" className="btn btn-soft" disabled={!!buddy.sending} onClick={() => void sendBuddyReaction('fire')}>🔥 شد حيلك</button>
+            <div className="buddy-actions buddy-actions-many">
+              {(['kfu','fire','beatme','yourturn','beast4'] as BuddyReactionKind[]).map((kind) => (
+                <button key={kind} type="button" className="buddy-react-btn" disabled={!!buddy.sending} onClick={() => void sendBuddyReaction(kind)}>
+                  {BUDDY_REACTION_LABEL[kind]}
+                </button>
+              ))}
             </div>
-            <div className="buddy-privacy">المشاركة هنا للحضور والالتزام فقط — الوزن والقياسات والنبض وApple Health تبقى خاصة.</div>
+            <div className="buddy-privacy">المشاركة هنا للحضور والالتزام فقط — الوزن والقياسات والنبض وApple Health تبقى خاصة تمامًا.</div>
           </>
         )}
       </section>
@@ -432,6 +547,30 @@ export default function Home() {
       </section>
 
       <Footer />
+
+      <Sheet open={!!exitSummary} onClose={() => setExitSummary(null)} title="ملخص زيارتك">
+        {exitSummary && (
+          <div className="exit-summary-sheet">
+            <div className="exit-summary-card">
+              <div className="exit-summary-brand">45/4</div>
+              <div className="exit-summary-coach">الكوتش / {exitSummary.coach}</div>
+              <div className="exit-summary-duration">{exitSummary.durationLabel}</div>
+              <div className="exit-summary-caption">وقت النادي اليوم</div>
+              <div className="exit-summary-stats">
+                {exitSummary.exercises > 0 && <span><b className="num">{exitSummary.exercises}</b><small>تمارين</small></span>}
+                {exitSummary.sets > 0 && <span><b className="num">{exitSummary.sets}</b><small>سيت</small></span>}
+                <span><b className="num">{exitSummary.weekCount}/4</b><small>هذا الأسبوع</small></span>
+              </div>
+              <div className="exit-summary-date">{exitSummary.dateLabel}</div>
+            </div>
+            <div className="exit-summary-actions">
+              <button className="btn btn-teal" onClick={() => { downloadGymSummaryCard(exitSummary); toast('تم تجهيز بطاقة للتحميل'); }}><Icon name="download" /> حفظ صورة</button>
+              <button className="btn btn-primary" onClick={() => { void shareGymSummary(exitSummary).then((r) => toast(r === 'shared' ? 'تم فتح المشاركة' : 'تم نسخ الملخص')).catch(() => toast('تعذّرت المشاركة الآن')); }}><Icon name="share" /> مشاركة</button>
+            </div>
+            <p className="muted center" style={{ fontSize: 12.5 }}>بطاقة مختصرة فقط — لا تحتوي وزنًا أو نبضًا أو بيانات Apple Health.</p>
+          </div>
+        )}
+      </Sheet>
 
       <DayPickerSheet open={pickOpen} onClose={() => setPickOpen(false)} d={d} onPick={(id) => act.startDay(id)} />
       <ShortSheet open={shortOpen} onClose={() => setShortOpen(false)} d={d} onStart={(id, m) => act.startDay(id, m)} />
