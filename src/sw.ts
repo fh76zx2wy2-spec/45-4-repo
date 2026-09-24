@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
+import { setCacheNameDetails } from 'workbox-core';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 
 declare const self: ServiceWorkerGlobalScope & {
@@ -8,6 +9,9 @@ declare const self: ServiceWorkerGlobalScope & {
 };
 
 const CASE_REGISTER_PATH = /^\/case-register(?:\/|$)/;
+
+// كل كاشات 45/4 تحمل prefix واضحًا ولا تُستخدم ككاش عام لباقي github.io.
+setCacheNameDetails({ prefix: '45-4', precache: 'precache', runtime: 'runtime', suffix: 'v1' });
 
 self.skipWaiting();
 
@@ -43,4 +47,39 @@ self.addEventListener('activate', (event) => {
       }, 0);
     }),
   );
+});
+
+
+/* ============================ Web Push ============================ */
+self.addEventListener('push', (event: any) => {
+  let payload: any = {};
+  try { payload = event.data?.json?.() ?? {}; } catch { payload = { title: '45/4', body: event.data?.text?.() ?? '' }; }
+  const title = payload.title || '45/4';
+  const options: NotificationOptions & { actions?: Array<{ action: string; title: string }> } = {
+    body: payload.body || '',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/icon-192.png',
+    tag: payload.tag || undefined,
+    data: { url: payload.data?.url || '/', ...(payload.data || {}) },
+    actions: Array.isArray(payload.actions) ? payload.actions : undefined,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event: any) => {
+  event.notification?.close?.();
+  if (event.action === 'ack') return;
+  const target = new URL(event.notification?.data?.url || '/', self.location.origin).href;
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) {
+      const w = client as WindowClient;
+      if (new URL(w.url).origin === self.location.origin) {
+        await w.focus();
+        if (w.url !== target) await w.navigate(target);
+        return;
+      }
+    }
+    await self.clients.openWindow(target);
+  })());
 });

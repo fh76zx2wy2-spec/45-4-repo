@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ACTIVE_PROGRAM, SAFETY_NOTE } from '../data/program';
 import { useAuth } from '../lib/auth';
@@ -9,6 +9,7 @@ import { isIOS, useInstall } from '../lib/pwa';
 import { useDerived } from '../lib/derived';
 import { Footer, PageHeader, Sheet, Switch, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { disablePush, enablePush, getPushState, sendTestPush, type PushState } from '../lib/push';
 
 export default function Settings() {
   const d = useDerived();
@@ -20,7 +21,11 @@ export default function Settings() {
   const install = useInstall();
   const s = d.settings;
   const [outOpen, setOutOpen] = useState(false);
+  const [pushState, setPushState] = useState<PushState>('prompt');
+  const [pushBusy, setPushBusy] = useState(false);
   const pending = db?.pending.length ?? 0;
+
+  useEffect(() => { void getPushState().then(setPushState); }, []);
 
   const setTheme = (t: ThemePref) => {
     applyTheme(t);
@@ -37,6 +42,42 @@ export default function Settings() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  async function turnOnPush() {
+    setPushBusy(true);
+    try {
+      const next = await enablePush();
+      setPushState(next);
+      toast(next === 'enabled' ? 'تم تفعيل الإشعارات على هذا الجهاز' : next === 'denied' ? 'الإشعارات مرفوضة من إعدادات الجهاز' : 'تعذر التفعيل');
+    } catch {
+      toast('تعذر تفعيل الإشعارات الآن');
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function testPush() {
+    setPushBusy(true);
+    try {
+      await sendTestPush();
+      toast('أُرسل إشعار تجريبي — اقفل 45/4 وجرب');
+    } catch {
+      toast('تعذر إرسال الإشعار التجريبي. تأكد أن Edge Function مفعّلة.');
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function turnOffPush() {
+    setPushBusy(true);
+    try {
+      await disablePush();
+      setPushState('prompt');
+      toast('تم إيقاف إشعارات هذا الجهاز');
+    } finally {
+      setPushBusy(false);
+    }
   }
 
   const syncLabel =
@@ -71,6 +112,31 @@ export default function Settings() {
           <b>الأحد ← السبت</b>
           <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>الهدف ثابت: إكمال 4 أيام قبل نهاية السبت، ثم يبدأ أسبوع جديد صباح الأحد.</div>
         </div>
+      </section>
+
+      <section className="card stack">
+        <div className="row-between">
+          <div>
+            <div className="card-title">الإشعارات 🔔</div>
+            <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>تعمل حتى لو كان 45/4 مقفلًا بعد تثبيته على الشاشة الرئيسية.</div>
+          </div>
+          <span className={`tag ${pushState === 'enabled' ? 'tag-cold' : ''}`}>{pushState === 'enabled' ? 'مفعّلة' : pushState === 'denied' ? 'مرفوضة' : pushState === 'unsupported' ? 'غير مدعومة' : 'غير مفعّلة'}</span>
+        </div>
+        {pushState === 'enabled' ? (
+          <>
+            <div className="note-box cold">
+              <b>لكل كوتش:</b> عند بلوغ مدة خطته، ثم تذكير خروج إذا بقيت الزيارة مفتوحة، وتحفيز بعد 4 أيام بدون زيارة.
+            </div>
+            <button className="btn btn-primary btn-block" disabled={pushBusy} onClick={() => void testPush()}><Icon name="bolt" /> أرسل لي إشعارًا تجريبيًا</button>
+            <button className="btn btn-ghost btn-block" disabled={pushBusy} onClick={() => void turnOffPush()}>إيقاف إشعارات هذا الجهاز</button>
+          </>
+        ) : pushState === 'prompt' ? (
+          <button className="btn btn-primary btn-block" disabled={pushBusy} onClick={() => void turnOnPush()}><Icon name="bolt" /> تفعيل إشعارات 45/4</button>
+        ) : pushState === 'denied' ? (
+          <p className="muted" style={{ fontSize: 13 }}>اسمح بالإشعارات من إعدادات iPhone الخاصة بـ45/4 ثم ارجع لهذه الصفحة.</p>
+        ) : (
+          <p className="muted" style={{ fontSize: 13 }}>هذا الجهاز أو طريقة فتح الموقع لا تدعم Web Push.</p>
+        )}
       </section>
 
       <section className="card pad-0">

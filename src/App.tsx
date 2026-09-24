@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './lib/auth';
 import { useDB } from './lib/store';
@@ -6,6 +6,7 @@ import { useTheme } from './lib/theme';
 import { Icon } from './components/Icon';
 import { Logo } from './components/ui';
 import { MiniPlayer } from './components/MiniPlayer';
+import { EntryGate } from './components/EntryGate';
 import Login from './screens/Login';
 import Home from './screens/Home';
 
@@ -24,7 +25,6 @@ const History = lazy(() => import('./screens/History'));
 const SessionDetail = lazy(() => import('./screens/SessionDetail'));
 const Settings = lazy(() => import('./screens/Settings'));
 const ProgramEditor = lazy(() => import('./screens/ProgramEditor'));
-const AppleHealth = lazy(() => import('./screens/AppleHealth'));
 
 function Splash() {
   return (
@@ -86,10 +86,12 @@ function Shell() {
 }
 
 export default function App() {
-  const { status, configured } = useAuth();
+  const { status, configured, user } = useAuth();
+  const [enteredFor, setEnteredFor] = useState<string | null>(null);
   if (!configured) return <ConfigMissing />;
   if (status === 'loading') return <Splash />;
   if (status === 'signedOut') return <Login />;
+  if (!user || enteredFor !== user.id) return <EntryGate onEnter={() => setEnteredFor(user.id)} />;
   return (
     <>
     <MiniPlayer />
@@ -105,7 +107,6 @@ export default function App() {
         <Route path="devices/:id" element={<DeviceDetail />} />
         <Route path="listen" element={<Listen />} />
         <Route path="progress" element={<Progress />} />
-        <Route path="apple-health" element={<AppleHealth />} />
         <Route path="program" element={<ProgramScreen />} />
         <Route path="history" element={<History />} />
         <Route path="history/:id" element={<SessionDetail />} />

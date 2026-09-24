@@ -130,7 +130,7 @@ export function resolvePlan(
   }
 
   const mode = cardioMinutes < 12 ? 'steady' : day.cardio.mode;
-  const segments = buildCardioSegments(mode, cardioMinutes, phase.id);
+  const segments = buildCardioSegments(mode, cardioMinutes, phase.id, day.id);
 
   const totalMinutes = preset ? preset.minutes : SESSION_STRUCTURE.total;
 

@@ -492,3 +492,51 @@ details.card > summary::-webkit-details-marker { display: none; }
   font-size: 2.3rem;
   font-weight: 800;
 }
+
+/* ============================ بوابة الدخول التحفيزية ============================ */
+.entry-gate {
+  min-height: 100dvh; display: grid; place-items: center; padding: max(28px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
+  position: relative; overflow: hidden; background:
+    radial-gradient(circle at 15% 18%, color-mix(in srgb, var(--hot) 14%, transparent), transparent 34%),
+    radial-gradient(circle at 82% 74%, color-mix(in srgb, var(--cold) 16%, transparent), transparent 36%),
+    var(--bg);
+}
+.entry-card {
+  position: relative; z-index: 2; width: min(100%, 390px); padding: 30px 24px 24px; text-align: center;
+  border: 1px solid var(--line); border-radius: 34px; background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 30px 70px -38px rgba(0,0,0,.46); backdrop-filter: blur(18px);
+  animation: entryRise .5s cubic-bezier(.22,1,.36,1) both;
+}
+.entry-photo-wrap { width: 112px; height: 132px; margin: 20px auto 14px; border-radius: 28px; overflow: hidden; border: 2px solid color-mix(in srgb, #fff 76%, var(--line)); box-shadow: 0 20px 38px -28px rgba(0,0,0,.6); }
+.entry-photo { width: 100%; height: 100%; object-fit: cover; object-position: 50% 23%; }
+.entry-gate.ziyad .entry-photo { object-position: 50% 24%; }
+.entry-placeholder { display:grid; place-items:center; font-size: 2.6rem; font-weight: 900; background: var(--surface-2); }
+.entry-coach { font-family: var(--font-display); font-size: 28px; font-weight: 900; }
+.entry-coach span { color: var(--hot); font-weight: 600; }
+.entry-card blockquote { margin: 18px auto 20px; max-width: 300px; font-family: var(--font-display); font-size: 27px; line-height: 1.55; font-weight: 800; color: var(--ink); }
+.entry-button { width: min(100%, 250px); margin: 0 auto; }
+.entry-card > small { display:block; margin-top: 12px; color: var(--muted); font-weight: 700; direction: rtl; }
+.entry-orb { position:absolute; border-radius:50%; filter: blur(1px); opacity:.75; animation: coachFloat 8s ease-in-out infinite; }
+.entry-orb.a { width:180px; height:180px; top:-60px; right:-70px; background: color-mix(in srgb, var(--cold) 12%, transparent); }
+.entry-orb.b { width:150px; height:150px; bottom:-52px; left:-55px; background: color-mix(in srgb, var(--hot) 12%, transparent); animation-delay:-3s; }
+@keyframes entryRise { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:none; } }
+
+/* ============================ إشعارات 45/4 ============================ */
+.push-home-card { display:flex; align-items:center; gap:11px; padding:11px 12px; border:1px solid color-mix(in srgb, var(--cold) 24%, var(--line)); border-radius:17px; background: color-mix(in srgb, var(--cold-soft) 45%, var(--surface)); }
+.push-home-icon { width:39px; height:39px; border-radius:13px; display:inline-flex; align-items:center; justify-content:center; flex:none; background:var(--cold-soft); color:var(--cold-ink); }
+.push-home-icon svg { width:21px; height:21px; }
+.push-home-card b { display:block; font-size:13.5px; }
+.push-home-card small { display:block; color:var(--muted); font-size:10.8px; line-height:1.45; margin-top:2px; }
+
+/* ============================ كارديو المحطات ============================ */
+.seg-now.station { text-align:start; border:1px solid color-mix(in srgb, var(--cold) 26%, var(--line)); background: color-mix(in srgb, var(--cold-soft) 54%, var(--surface)); }
+.seg-station-kicker { color:var(--muted); font-size:10.5px; font-weight:800; margin-bottom:4px; }
+.seg-now.station b { font-size:17px; color:var(--cold-ink); }
+.mixed-stations-list { display:grid; gap:7px; margin-top:10px; }
+.mixed-stations-list span { display:block; padding:8px 10px; border-radius:12px; color:var(--muted); background:var(--surface-2); border:1px solid var(--line-2); font-size:12px; }
+.mixed-stations-list span b { display:inline-grid; place-items:center; width:20px; height:20px; margin-inline-end:5px; border-radius:50%; background:var(--line-2); color:var(--ink); font-size:10px; }
+.mixed-stations-list span.cur { color:var(--cold-ink); border-color:color-mix(in srgb, var(--cold) 35%, var(--line)); background:var(--cold-soft); font-weight:800; }
+.mixed-stations-list span.past { opacity:.65; text-decoration:line-through; text-decoration-thickness:1px; }
+
+/* العبارة التحفيزية انتقلت إلى بوابة الدخول */
+.coach-copy { display:flex; flex-direction:column; justify-content:center; }

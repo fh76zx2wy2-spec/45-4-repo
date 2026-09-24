@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ACTIVE_PROGRAM, DAY_BY_ID, PROGRAM_WEEKS, SESSION_STRUCTURE, WEEKLY_GOAL } from '../data/program';
 import { DAILY_FOCUS, pickByDate } from '../data/nutrition';
@@ -6,7 +6,7 @@ import { DURATION_PICKS, RECITERS } from '../data/audio';
 import { useDerived } from '../lib/derived';
 import { useStartActions } from '../lib/actions';
 import { deleteGymVisit, dismiss, endGymVisit, startGymVisit, useDB } from '../lib/store';
-import { useSyncInfo } from '../lib/sync';
+import { syncNow, useSyncInfo } from '../lib/sync';
 import { addDaysISO, diffDaysISO, formatGreg, formatHijri, formatHijriMonth, hijriOf, sinceLabel, weekdayName } from '../lib/dates';
 import { currentWeekMessage, monthRecapTarget, monthSummary, nudgeMessage, pastWeekMessage, sessionsWord, weekInfo } from '../lib/week';
 import { CheckMark, Footer, Logo, Sheet, useNow, useToast } from '../components/ui';
@@ -16,8 +16,9 @@ import { DayPickerSheet, ExtraSheet, ShortSheet, dayIllustrations } from '../com
 import { durationLabel, timeLabel } from '../lib/format';
 import { BUDDY_REACTION_LABEL, useBuddy, type BuddyReactionKind } from '../lib/buddy';
 import { buildAchievements } from '../lib/achievements';
-import { coachName, dayIcon, motivationForDate, timeGreeting } from '../lib/profile';
+import { coachName, dayIcon } from '../lib/profile';
 import { usePrivateProfilePhoto } from '../lib/privateProfilePhoto';
+import { enablePush, getPushState, type PushState } from '../lib/push';
 import { downloadGymSummaryCard, shareGymSummary, type GymSummaryShare } from '../lib/shareCard';
 
 export default function Home() {
@@ -41,18 +42,19 @@ export default function Home() {
   const activeVisitSeconds = activeVisit ? Math.max(0, Math.floor((nowMs - Date.parse(activeVisit.arrived_at)) / 1000)) : 0;
   const todayVisits = (db?.visits ?? []).filter((v) => v.date === today);
   const lastEndedToday = todayVisits.find((v) => !!v.left_at) ?? null;
-  const lastHealthToday = (db?.health ?? []).find((h) => h.date === today) ?? null;
   const buddyMe = buddy.me;
   const buddyMate = buddy.buddy;
   const coachPhoto = usePrivateProfilePhoto();
-  const timeHello = timeGreeting();
-  const motivation = motivationForDate(today);
+  const [pushState, setPushState] = useState<PushState>('prompt');
   const achievements = buildAchievements(db?.sessions ?? [], db?.visits ?? [], buddyMe?.streak_4of4 ?? stats.streak.current, stats.weeksComplete);
   const isRestDay = d.advice.kind === 'rest' && !trainedToday && !info.complete;
   const todayIcon = dayIcon(suggested, isRestDay);
 
+  useEffect(() => { void getPushState().then(setPushState); }, []);
+
   const arriveAtGym = () => {
     const v = startGymVisit();
+    void syncNow();
     toast(`بدأ الوقت، الله يقويك · وصلت ${timeLabel(v.arrived_at)}`);
     void buddy.refresh();
     // وضع النادي: بمجرد الوصول نفتح جلسة اليوم مباشرة إن لم تكن هناك جلسة جارية.
@@ -83,6 +85,7 @@ export default function Home() {
         weekCount: info.count,
       };
       setExitSummary(summary);
+      void syncNow();
       toast(`تم تسجيل خروجك · جلست في النادي ${summary.durationLabel}`);
       void buddy.refresh();
     }
@@ -91,6 +94,7 @@ export default function Home() {
     if (!activeVisit) return;
     if (!window.confirm('إلغاء تسجيل الوصول الحالي؟ سيُحذف وقت الوصول وكأنك لم تضغط «وصلت النادي».')) return;
     deleteGymVisit(activeVisit.id);
+    void syncNow();
     toast('تم التراجع عن تسجيل الوصول');
   };
   const sendBuddyReaction = async (kind: BuddyReactionKind) => {
@@ -99,6 +103,16 @@ export default function Home() {
       toast(`أرسلت ${BUDDY_REACTION_LABEL[kind]} إلى ${who}`);
     } catch {
       toast('تعذّر إرسال التشجيع الآن');
+    }
+  };
+
+  const enableNotifications = async () => {
+    try {
+      const state = await enablePush();
+      setPushState(state);
+      toast(state === 'enabled' ? 'تم تفعيل إشعارات 45/4 🔔' : state === 'denied' ? 'الإشعارات مرفوضة من إعدادات الجهاز' : 'تعذر تفعيل الإشعارات على هذا الجهاز');
+    } catch {
+      toast('تعذر تفعيل الإشعارات الآن');
     }
   };
 
@@ -210,9 +224,7 @@ export default function Home() {
         </div>
         <div className="coach-main">
           <div className="coach-copy">
-            <div className="coach-kicker">{timeHello}</div>
             <h1 className="coach-name">الكوتش <span>/</span> {name}</h1>
-            <p className="coach-quote">«{motivation}»</p>
             <div className="coach-date">
               <b>{formatHijri(today)}</b>
               <span>{weekdayName(today)} · {formatGreg(today)} م</span>
@@ -260,15 +272,18 @@ export default function Home() {
         )}
       </section>
 
-      <Link to="/apple-health" className="apple-optional">
-        <span className="apple-mark"></span>
-        <span className="grow">
-          <b>بيانات Apple Health</b>
-          <small>{lastHealthToday ? `آخر استيراد اليوم · ${durationLabel(lastHealthToday.duration_seconds)}` : 'استيراد اختياري — لا يغيّر نشاطك ولا تمرينك'}</small>
-        </span>
-        <span className="tag tag-cold">اختياري</span>
-        <Icon name="chevL" className="chev" />
-      </Link>
+
+
+      {pushState !== 'enabled' && pushState !== 'unsupported' && (
+        <section className="push-home-card">
+          <span className="push-home-icon"><Icon name="bolt" /></span>
+          <div className="grow">
+            <b>تنبيهات 45/4</b>
+            <small>{pushState === 'denied' ? 'الإشعارات مرفوضة من إعدادات الجهاز' : '45 دقيقة، تذكير الخروج، وتحفيز بعد الانقطاع'}</small>
+          </div>
+          {pushState !== 'denied' && <button className="btn btn-sm btn-primary" onClick={() => void enableNotifications()}>تفعيل</button>}
+        </section>
+      )}
 
       {/* اليوم باختصار */}
       <section className={`today-brief ${isRestDay ? 'rest' : info.complete ? 'complete' : ''}`}>

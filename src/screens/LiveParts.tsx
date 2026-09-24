@@ -56,7 +56,8 @@ export function ExerciseStage({
   const [altOpen, setAltOpen] = useState(false);
   const alts = alternativesFor(stage);
   const postpone = canPostpone(live);
-  const hasWeight = stage.machineId !== 'plank';
+  // 45/4 لا يطلب تسجيل أوزان الحديد؛ التركيز على إنجاز الجلسة فقط.
+  const hasWeight = false;
   const origName = stage.substitutedFor ? machineName(stage.substitutedFor).ar : null;
   const done = stage.status !== 'pending';
 
@@ -228,8 +229,17 @@ export function TimedStage({ live, stage, now, title, hint }: { live: LiveSessio
   });
   const seg = segIdx >= 0 ? segs[segIdx] : null;
   const over = elapsed >= total;
+  const mixedCardio = stage.kind === 'cardio' && segs.some((x) => !!x.station);
   const machine = MACHINES[stage.machineId as MachineId];
-  const name = stage.key === 'warmup' ? { ar: 'التسخين', en: 'Warm-up' } : stage.kind === 'stretch' ? { ar: 'الإطالة', en: 'Stretching' } : stage.kind === 'timed' ? { ar: title, en: '' } : machineName(stage.machineId);
+  const name = stage.key === 'warmup'
+    ? { ar: 'التسخين', en: 'Warm-up' }
+    : stage.kind === 'stretch'
+      ? { ar: 'الإطالة', en: 'Stretching' }
+      : stage.kind === 'timed'
+        ? { ar: title, en: '' }
+        : mixedCardio
+          ? { ar: 'كارديو متنوع', en: 'Mixed Cardio' }
+          : machineName(stage.machineId);
 
   return (
     <div className="stack live-stage">
@@ -245,9 +255,10 @@ export function TimedStage({ live, stage, now, title, hint }: { live: LiveSessio
           </Ring>
         </div>
         {seg && (
-          <div className={`seg-now ${seg.kind}`}>
+          <div className={`seg-now ${seg.kind} ${seg.station ? 'station' : ''}`}>
+            {seg.station && <div className="seg-station-kicker">المحطة {segIdx + 1} من {segs.length}</div>}
             <div className="row-between">
-              <b>{seg.label}</b>
+              <b>{seg.stationLabel ?? seg.label}</b>
               <span className="num">{mmss(segLeft)}</span>
             </div>
             <div className="s">{seg.hint}</div>
@@ -259,16 +270,26 @@ export function TimedStage({ live, stage, now, title, hint }: { live: LiveSessio
 
       {segs.length > 1 && (
         <section className="card">
-          <div className="card-title" style={{ marginBottom: 10 }}>جدول الكارديو</div>
+          <div className="card-title" style={{ marginBottom: 10 }}>{mixedCardio ? 'محطات الكارديو' : 'جدول الكارديو'}</div>
           <div className="segline" aria-hidden="true">
             {segs.map((s, i) => (
               <i key={i} className={`${s.kind} ${i === segIdx ? 'cur' : ''} ${i < segIdx ? 'past' : ''}`} style={{ flexGrow: s.seconds }} />
             ))}
           </div>
-          <div className="seg-legend">
-            <span><i className="warmup" /> تسخين/هادئ</span>
-            <span><i className="fast" /> أسرع</span>
-          </div>
+          {mixedCardio ? (
+            <div className="mixed-stations-list">
+              {segs.map((s, i) => (
+                <span key={`${s.station}-${i}`} className={i === segIdx ? 'cur' : i < segIdx ? 'past' : ''}>
+                  <b>{i + 1}</b> {s.stationLabel ?? s.label} · {mmss(s.seconds)}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="seg-legend">
+              <span><i className="warmup" /> تسخين/هادئ</span>
+              <span><i className="fast" /> أسرع</span>
+            </div>
+          )}
         </section>
       )}
 

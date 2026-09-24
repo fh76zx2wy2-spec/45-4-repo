@@ -6,7 +6,6 @@ const ITEMS: { to: string; icon: IconName; title: string; sub: string; cold?: bo
   { to: '/devices', icon: 'search', title: 'دليل الأجهزة', sub: 'كل جهاز بصورته وعضلاته وطريقة استخدامه' },
   { to: '/listen', icon: 'headphones', title: 'اسمع أثناء التمرين', sub: 'تلاوات وبودكاست ومحفوظاتك', cold: true },
   { to: '/progress', icon: 'chart', title: 'تقدّمي', sub: 'الوزن والإحصائيات وسلسلة الالتزام' },
-  { to: '/apple-health', icon: 'share', title: 'Apple Health', sub: 'استيراد اختياري للإحصائيات فقط', cold: true },
   { to: '/history', icon: 'list', title: 'سجل الجلسات', sub: 'كل جلساتك من الأحدث إلى الأقدم', cold: true },
   { to: '/settings', icon: 'gear', title: 'الإعدادات', sub: 'المظهر والتنبيهات والبرنامج والحساب' },
 ];

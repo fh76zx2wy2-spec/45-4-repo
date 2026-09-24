@@ -264,19 +264,59 @@ export interface CardioSegment {
   seconds: number;
   label: string;
   hint: string;
+  /** محطة الكارديو الحالية — تُستخدم لخطة زياد المتنوعة فقط. */
+  station?: 'elliptical' | 'bike' | 'rower' | 'stairs';
+  stationLabel?: string;
+}
+
+const MIXED_CARDIO_STATIONS: Array<NonNullable<CardioSegment['station']>> = ['elliptical', 'bike', 'rower', 'stairs'];
+const MIXED_CARDIO_LABELS: Record<NonNullable<CardioSegment['station']>, string> = {
+  elliptical: 'الأوبتيكال',
+  bike: 'الدراجة',
+  rower: 'التجديف الداخلي',
+  stairs: 'جهاز الدرج',
+};
+const MIXED_CARDIO_HINTS: Record<NonNullable<CardioSegment['station']>, string> = {
+  elliptical: 'إيقاع مريح ومقاومة خفيفة إلى متوسطة',
+  bike: 'حافظ على دوران ثابت ومريح',
+  rower: 'سحب هادئ ومنتظم بدون اندفاع',
+  stairs: 'خطوات ثابتة وتمسّك بالمقابض للتوازن فقط',
+};
+
+function buildMixedCardio(minutes: number, dayId: DayId): CardioSegment[] {
+  const total = Math.max(60, Math.round(minutes * 60));
+  // 20 دقيقة = 6 + 5 + 5 + 4. وتتناسب تلقائيًا إذا قصّر المستخدم الكارديو.
+  const weights = [0.30, 0.25, 0.25, 0.20];
+  const rotation = (dayId - 1) % MIXED_CARDIO_STATIONS.length;
+  const stations = [...MIXED_CARDIO_STATIONS.slice(rotation), ...MIXED_CARDIO_STATIONS.slice(0, rotation)];
+  let used = 0;
+  return stations.map((station, i) => {
+    const seconds = i === stations.length - 1 ? total - used : Math.max(30, Math.round(total * weights[i]));
+    used += seconds;
+    return {
+      kind: i === 0 ? 'warmup' : 'steady',
+      seconds,
+      label: MIXED_CARDIO_LABELS[station],
+      station,
+      stationLabel: MIXED_CARDIO_LABELS[station],
+      hint: MIXED_CARDIO_HINTS[station],
+    };
+  });
 }
 
 /**
  * يبني جدول الكارديو للجلسة.
- * - أول 5 دقائق تسخين هادئ (PDF).
- * - الفترات: دقيقة أسرع + دقيقتان هادئتان، وفي مرحلة التثبيت تُمدَّد السريعة إلى دقيقتين.
- * - التأقلم (أسبوع 1–2): ثابت في كل الأيام.
+ * - زياد: كارديو متنوع بين الأوبتيكال والدراجة والتجديف والدرج بدل البقاء على جهاز واحد.
+ * - عبدالسلام: تبقى خطة ملفه كما هي (ثابت/فترات).
  */
 export function buildCardioSegments(
   mode: 'steady' | 'intervals',
   minutes: number,
   phase: PhaseId,
+  dayId: DayId,
 ): CardioSegment[] {
+  if (ACTIVE_PROGRAM.key === 'ziyad') return buildMixedCardio(minutes, dayId);
+
   const total = Math.round(minutes * 60);
   const warm = ACTIVE_PROGRAM.cardioEmbeddedWarmup ? Math.min(300, Math.round(total * 0.25)) : 0;
   const segs: CardioSegment[] = warm
@@ -615,7 +655,10 @@ export function setProgramForEmail(email: string | null | undefined) {
   SESSION_STRUCTURE = { ...ZIYAD_STRUCTURE };
   DAYS = ZIYAD_DAYS.map((d) => ({
     ...d,
-    cardio: { ...d.cardio },
+    cardio: {
+      ...d.cardio,
+      note: '20 دقيقة متنوعة: أوبتيكال + دراجة + تجديف داخلي + درج — ينتقل التطبيق بين المحطات تلقائيًا.',
+    },
     exercises: d.exercises.map((x) => ({ ...x })),
     circuit: d.circuit ? { ...d.circuit } : undefined,
   }));
