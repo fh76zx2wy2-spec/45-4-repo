@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>45/4</title>
   <meta name="description" content="45/4 — رفيقك الشخصي في النادي: ٤ أيام · خطة تناسب حسابك." />
-  <meta name="theme-color" content="#FAF6EF" />
+  <meta name="theme-color" content="#F5F7F8" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -23,7 +23,7 @@
         var p = localStorage.getItem('45-4:theme') || 'system';
         var dark = p === 'dark' || (p === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-        var c = dark ? '#19120D' : '#FAF6EF';
+        var c = dark ? '#0B0F13' : '#F5F7F8';
         document.querySelector('meta[name="theme-color"]').setAttribute('content', c);
         document.documentElement.style.background = c;
       } catch (e) {}
@@ -33,7 +33,7 @@
 <body>
   <div id="root">
     <div id="boot" style="min-height:100dvh;display:flex;align-items:center;justify-content:center">
-      <div style="font-family:'Thmanyah Serif Display',serif;font-weight:900;font-size:64px;letter-spacing:-.02em;direction:ltr;opacity:.9;color:#C67A3D">45/4</div>
+      <div style="font-family:'Thmanyah Serif Display',serif;font-weight:900;font-size:64px;letter-spacing:-.02em;direction:ltr;opacity:.9;color:#00AEEF">45/4</div>
     </div>
   </div>
   <script type="module" src="/src/main.tsx"></script>

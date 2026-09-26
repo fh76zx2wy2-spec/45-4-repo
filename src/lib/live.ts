@@ -359,6 +359,49 @@ export function markStageDone(live: LiveSession): LiveSession {
   return advance({ ...live, stages });
 }
 
+/** هل يمكن التراجع عن آخر ضغطة إنهاء/تخطٍ بدون خسارة الوقت السابق؟ */
+export function canUndoLastStep(live: LiveSession): boolean {
+  const cur = live.stages[live.cur];
+  if (cur?.status === 'done' && cur.kind === 'exercise' && cur.setsDone > 0) return true;
+  for (let i = Math.min(live.cur - 1, live.stages.length - 1); i >= 0; i--) {
+    if (live.stages[i].status === 'done' || live.stages[i].status === 'skipped') return true;
+  }
+  return false;
+}
+
+/** يعيد آخر مرحلة أُنهيت بالخطأ. المرحلة الموقّتة تعود بنفس الوقت الفعلي (مثل 3:00) وهي متوقفة مؤقتًا. */
+export function undoLastStep(live: LiveSession): LiveSession {
+  const cur = live.stages[live.cur];
+  if (cur?.status === 'done' && cur.kind === 'exercise' && cur.setsDone > 0) {
+    const stages = live.stages.map((s, i) => i === live.cur
+      ? { ...s, status: 'pending' as const, setsDone: Math.max(0, s.setsDone - 1) }
+      : s);
+    return { ...live, stages, rest: null, phase: 'running', inter: null };
+  }
+
+  let idx = -1;
+  for (let i = Math.min(live.cur - 1, live.stages.length - 1); i >= 0; i--) {
+    if (live.stages[i].status === 'done' || live.stages[i].status === 'skipped') { idx = i; break; }
+  }
+  if (idx < 0) return live;
+  const prev = live.stages[idx];
+  const stages = live.stages.map((s, i) => {
+    if (i !== idx) return s;
+    if (s.kind === 'exercise') return { ...s, status: 'pending' as const, setsDone: Math.max(0, s.setsDone - 1) };
+    return { ...s, status: 'pending' as const };
+  });
+  const timed = prev.kind !== 'exercise';
+  return {
+    ...live,
+    stages,
+    cur: idx,
+    rest: null,
+    phase: 'running',
+    inter: null,
+    clock: timed ? { startedAt: null, acc: Math.max(0, (prev.spent ?? 0) * 1000) } : { startedAt: null, acc: 0 },
+  };
+}
+
 /** «التالي» بعد اكتمال كل سيتات الجهاز */
 export function nextAfterStage(live: LiveSession): LiveSession {
   return advance({ ...live, rest: null });

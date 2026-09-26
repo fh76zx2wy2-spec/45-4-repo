@@ -21,7 +21,7 @@ export function applyTheme(pref: ThemePref) {
   const el = document.documentElement;
   el.dataset.theme = dark ? 'dark' : 'light';
   const meta = document.querySelector('meta[name="theme-color"]:not([media])') ?? document.querySelector('meta[name="theme-color"]');
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', dark ? '#19120D' : '#FAF6EF'));
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', dark ? '#0B0F13' : '#F5F7F8'));
   void meta;
   try {
     localStorage.setItem(LS, pref);

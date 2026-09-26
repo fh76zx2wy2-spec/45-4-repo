@@ -7,8 +7,8 @@ import { useDerived } from '../lib/derived';
 import { useStartActions } from '../lib/actions';
 import { deleteGymVisit, dismiss, endGymVisit, startGymVisit, useDB } from '../lib/store';
 import { syncNow, useSyncInfo } from '../lib/sync';
-import { addDaysISO, diffDaysISO, formatGreg, formatHijri, formatHijriMonth, hijriOf, sinceLabel, weekdayName } from '../lib/dates';
-import { currentWeekMessage, monthRecapTarget, monthSummary, nudgeMessage, pastWeekMessage, sessionsWord, weekInfo } from '../lib/week';
+import { addDaysISO, attendanceDayLabel, diffDaysISO, formatGreg, formatHijri, formatHijriMonth, hijriOf, weekdayName } from '../lib/dates';
+import { attendanceWeekInfo, monthRecapTarget, monthSummary, sessionsWord, weekInfo } from '../lib/week';
 import { CheckMark, Footer, Logo, Sheet, useNow, useToast } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Illustration } from '../components/Illustration';
@@ -18,8 +18,30 @@ import { BUDDY_REACTION_LABEL, useBuddy, type BuddyReactionKind } from '../lib/b
 import { buildAchievements } from '../lib/achievements';
 import { coachName, dayIcon } from '../lib/profile';
 import { usePrivateProfilePhoto } from '../lib/privateProfilePhoto';
-import { enablePush, getPushState, type PushState } from '../lib/push';
+import { enablePush, getPushState, notifyBuddyArrival, notifyBuddyFourOfFour, notifyBuddyLeft, notifyBuddyReaction, type PushState } from '../lib/push';
 import { downloadGymSummaryCard, shareGymSummary, type GymSummaryShare } from '../lib/shareCard';
+
+function attendanceWeekCopy(count: number) {
+  const left = Math.max(0, WEEKLY_GOAL - count);
+  if (left === 0) return { title: 'اكتمل حضور الأسبوع ✓', sub: 'أربعة أيام حضور من الأحد إلى السبت' };
+  const title = count === 0 ? 'أسبوع جديد — أربع زيارات بانتظارك' : count === 1 ? 'أنجزت يوم حضور واحد هذا الأسبوع' : count === 2 ? 'أنجزت يومي حضور هذا الأسبوع' : `أنجزت ${count} أيام حضور هذا الأسبوع`;
+  const sub = left === 1 ? 'باقي لك يوم حضور واحد' : left === 2 ? 'باقي لك يومان' : `باقي لك ${left} أيام حضور`;
+  return { title, sub };
+}
+
+function attendanceNudge(count: number) {
+  const left = WEEKLY_GOAL - count;
+  if (left <= 0) return null;
+  if (left === 1) return 'يوم حضور واحد يفصلك عن 4/4';
+  if (left === 2) return 'يوما حضور يفصلانك عن 4/4';
+  return `${left} أيام حضور تفصلك عن 4/4`;
+}
+
+function pastAttendanceCopy(count: number) {
+  if (count >= WEEKLY_GOAL) return { title: 'اكتمل حضور الأسبوع ✓', sub: '4/4' };
+  const missed = WEEKLY_GOAL - count;
+  return { title: `الأسبوع الماضي: ${count} من 4 أيام حضور`, sub: missed === 1 ? 'فاتك يوم حضور واحد' : `فاتتك ${missed} أيام حضور` };
+}
 
 export default function Home() {
   const d = useDerived();
@@ -35,7 +57,7 @@ export default function Home() {
   const buddy = useBuddy();
 
   const name = coachName();
-  const { today, info, suggested, position, stats, settings, curWeekStart, trainedToday } = d;
+  const { today, info, attendanceInfo, suggested, position, stats, settings, curWeekStart, trainedToday } = d;
   const live = db?.live ?? null;
   const activeVisit = db?.visits.find((v) => !v.left_at) ?? null;
   const nowMs = useNow(15_000, !!activeVisit);
@@ -52,17 +74,21 @@ export default function Home() {
 
   useEffect(() => { void getPushState().then(setPushState); }, []);
 
-  const arriveAtGym = () => {
+  const arriveAtGym = async () => {
+    const wasAttendanceCount = attendanceInfo.count;
+    const alreadyCountedToday = attendanceInfo.dates.includes(today);
     const v = startGymVisit();
-    void syncNow();
     toast(`بدأ الوقت، الله يقويك · وصلت ${timeLabel(v.arrived_at)}`);
-    void buddy.refresh();
-    // وضع النادي: بمجرد الوصول نفتح جلسة اليوم مباشرة إن لم تكن هناك جلسة جارية.
-    if (live) {
-      window.setTimeout(() => nav('/live'), 320);
-    } else if (suggested) {
-      window.setTimeout(() => act.startDay(suggested), 420);
+    // الحضور مستقل عن برنامج التمارين: لا نبدأ جلسة ولا ننقل المستخدم تلقائيًا.
+    try {
+      await syncNow();
+      await notifyBuddyArrival(v.id);
+      const newCount = Math.min(WEEKLY_GOAL, wasAttendanceCount + (alreadyCountedToday ? 0 : 1));
+      if (wasAttendanceCount < WEEKLY_GOAL && newCount >= WEEKLY_GOAL) await notifyBuddyFourOfFour(curWeekStart);
+    } catch {
+      // تسجيل الحضور يبقى محفوظًا محليًا حتى لو تعذّر إرسال الإشعار الآن.
     }
+    void buddy.refresh();
   };
   const leaveGym = () => {
     if (!activeVisit) return;
@@ -82,12 +108,17 @@ export default function Home() {
         durationLabel: durationLabel(v.duration_seconds),
         exercises,
         sets,
-        weekCount: info.count,
+        weekCount: attendanceInfo.count,
       };
       setExitSummary(summary);
-      void syncNow();
+      void (async () => {
+        try {
+          await syncNow();
+          await notifyBuddyLeft(v.id, v.duration_seconds);
+        } catch { /* الزيارة محفوظة؛ الإشعار لا يمنع الخروج */ }
+        void buddy.refresh();
+      })();
       toast(`تم تسجيل خروجك · جلست في النادي ${summary.durationLabel}`);
-      void buddy.refresh();
     }
   };
   const undoArrival = () => {
@@ -100,6 +131,7 @@ export default function Home() {
   const sendBuddyReaction = async (kind: BuddyReactionKind) => {
     try {
       const who = await buddy.sendReaction(kind);
+      try { await notifyBuddyReaction(kind); } catch { /* يبقى التشجيع داخل 45/4 حتى لو تعذّر Push */ }
       toast(`أرسلت ${BUDDY_REACTION_LABEL[kind]} إلى ${who}`);
     } catch {
       toast('تعذّر إرسال التشجيع الآن');
@@ -117,8 +149,8 @@ export default function Home() {
   };
 
   const day = suggested ? DAY_BY_ID[suggested] : null;
-  const msg = currentWeekMessage(info.count);
-  const nudge = nudgeMessage(info.count);
+  const msg = attendanceWeekCopy(attendanceInfo.count);
+  const nudge = attendanceNudge(attendanceInfo.count);
 
   const pendingCount = db?.pending.length ?? 0;
   const offline = sync.state === 'offline' || (typeof navigator !== 'undefined' && !navigator.onLine);
@@ -126,9 +158,9 @@ export default function Home() {
   /* ---------- بطاقة تنبيه واحدة على الأكثر ---------- */
   const gap = stats.lastSessionDate ? diffDaysISO(stats.lastSessionDate, today) : 0;
   const prevWeekStart = addDaysISO(d.curWeekStart, -7);
-  const prevInfo = weekInfo(d.sessions, prevWeekStart);
+  const prevAttendance = attendanceWeekInfo(db?.visits ?? [], prevWeekStart);
   const prevKey = `wk:${prevWeekStart}`;
-  const hasPrevWeek = prevWeekStart >= position.startWeek && d.sessions.length > 0;
+  const hasPrevWeek = prevWeekStart >= position.startWeek && (db?.visits ?? []).length > 0;
   const recap = monthRecapTarget(today);
   const recapKey = recap ? `recap:${recap.monthStart}` : '';
 
@@ -157,8 +189,8 @@ export default function Home() {
         </button>
       </div>
     );
-  } else if (hasPrevWeek && !prevInfo.complete && !settings.dismissed[prevKey] && prevInfo.counted.length + prevInfo.extras.length > 0) {
-    const pm = pastWeekMessage(prevInfo.count);
+  } else if (hasPrevWeek && !prevAttendance.complete && !settings.dismissed[prevKey] && prevAttendance.visits.length > 0) {
+    const pm = pastAttendanceCopy(prevAttendance.count);
     notice = (
       <div className="card card-flat">
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
@@ -181,7 +213,7 @@ export default function Home() {
             <div className="eyebrow">{recap.label === 'ending' ? 'الشهر على وشك الانتهاء' : 'ملخص الشهر'} · {formatHijriMonth(h.y, h.m)}</div>
             <div className="card-title">{ms.visits === 0 ? 'لا زيارات مسجّلة هذا الشهر' : `${ms.visits} ${ms.visits === 1 ? 'زيارة' : 'زيارات'} للنادي`}</div>
             <div className="card-sub">
-              {ms.base} أساسية{ms.extra ? ` + ${ms.extra} إضافية` : ''} · {ms.weeksComplete} {ms.weeksComplete === 1 ? 'أسبوع' : 'أسابيع'} 4/4
+              {ms.base} جلسة خطة{ms.extra ? ` + ${ms.extra} إضافية` : ''} · ملخص التمارين فقط
             </div>
             <Link to="/calendar" className="link-btn" style={{ paddingInline: 0 }}>عرض التقويم</Link>
           </div>
@@ -262,7 +294,7 @@ export default function Home() {
             <button type="button" className="gym-arrive-btn" onClick={arriveAtGym}>
               <span>وصلت النادي</span><Icon name="check" size={26} strokeWidth={3} />
             </button>
-            <div className="gym-checkin-meta">اضغطها عند وصولك فقط — ولا تؤثر على تمرين اليوم أو احتساب 4/4.</div>
+            <div className="gym-checkin-meta">اضغطها عند وصولك فقط — الحضور مستقل عن برنامج التمارين، و4/4 يُحسب من أيام حضورك.</div>
             {lastEndedToday && (
               <div className="gym-last-visit">
                 آخر زيارة اليوم: {timeLabel(lastEndedToday.arrived_at)} ← {timeLabel(lastEndedToday.left_at)} · <b>{durationLabel(lastEndedToday.duration_seconds)}</b>
@@ -274,34 +306,34 @@ export default function Home() {
 
 
 
-      {pushState !== 'enabled' && pushState !== 'unsupported' && (
-        <section className="push-home-card">
-          <span className="push-home-icon"><Icon name="bolt" /></span>
-          <div className="grow">
-            <b>تنبيهات 45/4</b>
-            <small>{pushState === 'denied' ? 'الإشعارات مرفوضة من إعدادات الجهاز' : '45 دقيقة، تذكير الخروج، وتحفيز بعد الانقطاع'}</small>
-          </div>
-          {pushState !== 'denied' && <button className="btn btn-sm btn-primary" onClick={() => void enableNotifications()}>تفعيل</button>}
-        </section>
-      )}
+      <section className="push-home-card">
+        <span className="push-home-icon"><Icon name="bolt" /></span>
+        <div className="grow">
+          <b>تنبيهات 45/4</b>
+          <small>{pushState === 'enabled' ? 'مفعّلة على هذا الجهاز ✓' : pushState === 'denied' ? 'الإشعارات مرفوضة من إعدادات الجهاز' : pushState === 'unsupported' ? 'افتح 45/4 من أيقونة الشاشة الرئيسية ثم اضغط تحقق' : 'دخول رفيقك، 4/4، التشجيعات، وتنبيها 45 دقيقة والساعة'}</small>
+        </div>
+        {pushState === 'prompt' && <button className="btn btn-sm btn-primary" onClick={() => void enableNotifications()}>تفعيل</button>}
+        {pushState === 'unsupported' && <button className="btn btn-sm btn-ghost" onClick={() => void getPushState().then(setPushState)}>تحقق</button>}
+        {pushState === 'enabled' && <span className="tag tag-cold">مفعّلة</span>}
+      </section>
 
       {/* اليوم باختصار */}
-      <section className={`today-brief ${isRestDay ? 'rest' : info.complete ? 'complete' : ''}`}>
+      <section className={`today-brief ${isRestDay ? 'rest' : attendanceInfo.complete ? 'complete' : ''}`}>
         <span className="today-brief-icon"><Icon name={todayIcon} /></span>
         <div className="grow">
           <div className="eyebrow">اليوم باختصار</div>
           <div className="today-brief-title">
-            {info.complete ? 'أسبوعك مكتمل 4/4 ✅' : isRestDay ? 'راحة واستشفاء 🌿' : day ? `اليوم ${day.id} — ${day.focus}` : 'جاهز للأسبوع'}
+            {attendanceInfo.complete ? 'حضورك مكتمل 4/4 ✅' : isRestDay ? 'راحة واستشفاء 🌿' : day ? `اليوم ${day.id} — ${day.focus}` : 'جاهز للأسبوع'}
           </div>
           <div className="today-brief-meta">
-            {info.complete
-              ? 'الباقي اختياري: راحة أو جلسة خفيفة'
+            {attendanceInfo.complete
+              ? 'أكملت أربعة أيام حضور هذا الأسبوع — برنامج التمرين يبقى اختياريًا' 
               : isRestDay
                 ? `تمرينك القادم: ${day?.focus ?? 'حسب خطتك'} · ${SESSION_STRUCTURE.total} دقيقة`
                 : `${SESSION_STRUCTURE.total} دقيقة · ${activeVisit ? 'أنت في النادي الآن' : trainedToday ? 'تمرين اليوم مكتمل' : 'بانتظار حضورك'}`}
           </div>
         </div>
-        <span className="today-brief-score num">{info.count}/4</span>
+        <span className="today-brief-score num">{attendanceInfo.count}/4</span>
       </section>
 
       {/* 1) تمرين اليوم */}
@@ -350,12 +382,12 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        <section className="ticket" aria-label="اكتمل هدف الأسبوع">
+        <section className="ticket" aria-label="اكتملت أيام خطة التمرين">
           <div className="ticket-top cold center">
             <div className="ticket-blob" />
             <div className="celebrate"><CheckMark size={92} /></div>
-            <h2 className="ticket-title">اكتمل هدف الأسبوع ✓</h2>
-            <div className="ticket-sub">4/4{info.extras.length ? ' ✓ + جلسة إضافية' : ''} — أحسنت، الباقي راحة أو جلسة خفيفة اختيارية.</div>
+            <h2 className="ticket-title">أنهيت أيام خطة التمرين ✓</h2>
+            <div className="ticket-sub">أنهيت الأيام الأربعة المقترحة{info.extras.length ? ' + جلسة إضافية' : ''} — والحضور 4/4 يُحسب مستقلًا من زيارات النادي.</div>
             <div className="ticket-stripe" />
           </div>
           <div className="ticket-bottom">
@@ -366,8 +398,8 @@ export default function Home() {
       )}
 
       {/* 2) تقدّم الأسبوع — الأحد إلى السبت دائمًا */}
-      <section className={`card week-card ${info.complete ? 'is-complete' : ''}`} aria-label="تقدّم الأسبوع">
-        {info.complete && (
+      <section className={`card week-card ${attendanceInfo.complete ? 'is-complete' : ''}`} aria-label="تقدّم الأسبوع">
+        {attendanceInfo.complete && (
           <div className="week-confetti" aria-hidden="true">
             {Array.from({ length: 10 }, (_, i) => <i key={i} />)}
           </div>
@@ -376,50 +408,50 @@ export default function Home() {
           <div>
             <div className="eyebrow">هذا الأسبوع · الأحد ← السبت</div>
             <div className="week-big disp">
-              <span className="num">{info.count}/{WEEKLY_GOAL}</span>
+              <span className="num">{attendanceInfo.count}/{WEEKLY_GOAL}</span>
             </div>
             <div className="week-range">{formatGreg(curWeekStart)} — {formatGreg(addDaysISO(curWeekStart, 6))}</div>
           </div>
           <div className="week-msg">
-            <div className="t">{info.complete ? 'أسبوع كامل ✅' : msg.title}</div>
-            <div className="muted" style={{ fontSize: 13.5 }}>{info.complete ? '4 أيام من الأحد إلى السبت — ممتاز' : msg.sub}</div>
+            <div className="t">{attendanceInfo.complete ? 'أسبوع كامل ✅' : msg.title}</div>
+            <div className="muted" style={{ fontSize: 13.5 }}>{attendanceInfo.complete ? '4 أيام من الأحد إلى السبت — ممتاز' : msg.sub}</div>
           </div>
         </div>
-        <div className="bar" style={{ marginTop: 14 }} role="progressbar" aria-valuemin={0} aria-valuemax={WEEKLY_GOAL} aria-valuenow={info.count}>
-          <i style={{ width: `${(info.count / WEEKLY_GOAL) * 100}%` }} />
+        <div className="bar" style={{ marginTop: 14 }} role="progressbar" aria-valuemin={0} aria-valuemax={WEEKLY_GOAL} aria-valuenow={attendanceInfo.count}>
+          <i style={{ width: `${(attendanceInfo.count / WEEKLY_GOAL) * 100}%` }} />
         </div>
         <div className="week-dots" style={{ marginTop: 16 }}>
           {Array.from({ length: WEEKLY_GOAL }, (_, i) => {
-            const s = info.counted[i];
-            const doneDot = i < info.count;
-            const next = i === info.count;
+            const visitDate = attendanceInfo.dates[i];
+            const doneDot = i < attendanceInfo.count;
+            const next = i === attendanceInfo.count;
             return (
               <div key={i} className={`wdot ${doneDot ? 'done' : ''} ${next ? 'next' : ''}`}>
                 <div className="c">{doneDot ? <Icon name="check" /> : <span className="num">{i + 1}</span>}</div>
-                <span>{s?.workout_day ? `اليوم ${s.workout_day}` : doneDot ? 'مكتملة' : ' '}</span>
+                <span>{visitDate ? weekdayName(visitDate) : doneDot ? 'حضور' : ' '}</span>
               </div>
             );
           })}
         </div>
-        {nudge && !info.complete && info.count > 0 && <p className="muted" style={{ fontSize: 13.5, marginTop: 12 }}>{nudge}</p>}
+        {nudge && !attendanceInfo.complete && attendanceInfo.count > 0 && <p className="muted" style={{ fontSize: 13.5, marginTop: 12 }}>{nudge}</p>}
         <div className="divider" style={{ margin: '14px 0 12px' }} />
         <div className="stack" style={{ gap: 8 }}>
           <div className="stat-line">
             <Icon name="clock" />
             <span>
-              {stats.lastSessionDate ? (
-                <>آخر مرة تمرنت فيها: <b>{sinceLabel(stats.lastSessionDate, today)}</b></>
-              ) : (
-                <>لم تبدأ بعد — جلستك الأولى هي الأهم</>
+              {(db?.visits ?? []).length ? (() => {
+                const last = [...(db?.visits ?? [])].sort((a, b) => b.arrived_at.localeCompare(a.arrived_at))[0];
+                return <>آخر حضور: <b>{attendanceDayLabel(last.arrived_at, today)} · {timeLabel(last.arrived_at)}</b></>;
+              })() : (
+                <>لم تسجّل حضورًا بعد — أول زيارة هي البداية</>
               )}
             </span>
           </div>
-          {(stats.streak.current > 0 || stats.streak.best > 0) && (
+          {(buddyMe?.streak_4of4 ?? 0) > 0 && (
             <div className="stat-line">
               <Icon name="flag" />
               <span>
-                سلسلة الالتزام: <b>{stats.streak.current}</b> {stats.streak.current === 1 ? 'أسبوع' : 'أسابيع'}
-                {stats.streak.best > stats.streak.current ? <span className="muted"> · أفضل سلسلة سابقة: {stats.streak.best}</span> : null}
+                سلسلة حضور 4/4: <b>{buddyMe?.streak_4of4 ?? 0}</b> {(buddyMe?.streak_4of4 ?? 0) === 1 ? 'أسبوع' : 'أسابيع'}
               </span>
             </div>
           )}
@@ -489,7 +521,7 @@ export default function Home() {
                   <div className="buddy-score num">{b.weekly_sessions}/4</div>
                   <div className="buddy-mini"><span>الزيارات</span><b className="num">{b.weekly_visits}</b></div>
                   <div className="buddy-mini"><span>وقت النادي</span><b>{durationLabel(b.weekly_visit_seconds)}</b></div>
-                  <div className="buddy-mini"><span>آخر حضور</span><b>{b.last_arrived_at ? timeLabel(b.last_arrived_at) : '—'}</b></div>
+                  <div className="buddy-mini"><span>آخر حضور</span><b>{b.last_arrived_at ? `${attendanceDayLabel(b.last_arrived_at, today)} · ${timeLabel(b.last_arrived_at)}` : '—'}</b></div>
                   <div className="buddy-mini"><span>سلسلة 4/4 🔥</span><b className="num">{b.streak_4of4}</b></div>
                 </div>
               ))}
@@ -511,7 +543,7 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            <div className="buddy-privacy">المشاركة هنا للحضور والالتزام فقط — الوزن والقياسات والنبض وApple Health تبقى خاصة تمامًا.</div>
+            <div className="buddy-privacy">المشاركة هنا للحضور والالتزام فقط — الوزن والقياسات والنبض والسعرات تبقى خاصة تمامًا.</div>
           </>
         )}
       </section>
@@ -582,7 +614,7 @@ export default function Home() {
               <button className="btn btn-teal" onClick={() => { downloadGymSummaryCard(exitSummary); toast('تم تجهيز بطاقة للتحميل'); }}><Icon name="download" /> حفظ صورة</button>
               <button className="btn btn-primary" onClick={() => { void shareGymSummary(exitSummary).then((r) => toast(r === 'shared' ? 'تم فتح المشاركة' : 'تم نسخ الملخص')).catch(() => toast('تعذّرت المشاركة الآن')); }}><Icon name="share" /> مشاركة</button>
             </div>
-            <p className="muted center" style={{ fontSize: 12.5 }}>بطاقة مختصرة فقط — لا تحتوي وزنًا أو نبضًا أو بيانات Apple Health.</p>
+            <p className="muted center" style={{ fontSize: 12.5 }}>بطاقة مختصرة فقط — لا تحتوي وزنًا أو نبضًا أو بيانات صحية خاصة.</p>
           </div>
         )}
       </Sheet>

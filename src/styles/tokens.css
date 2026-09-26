@@ -1,6 +1,6 @@
 /* ====================================================================
    45/4 — رموز التصميم (Design Tokens)
-   الروح اللونية مستلهمة من «صبّة»: كريمي هادئ + بني داكن + نحاسي + بترولي
+   الهوية اللونية مستلهمة من B_FIT: فحمي + أزرق كهربائي + وردي نيون + أبيض
    ==================================================================== */
 
 @font-face { font-family: 'Thmanyah Sans'; font-weight: 300; font-style: normal; font-display: swap; src: url('/fonts/thmanyahsans-Light.woff2') format('woff2'); }
@@ -19,31 +19,31 @@
   --font-display: 'Thmanyah Serif Display', 'Thmanyah Sans', serif;
 
   /* الألوان — فاتح */
-  --bg: #FAF6EF;
-  --bg-2: #F3ECDF;
-  --surface: #FFFDF9;
-  --surface-2: #F8F2E8;
-  --ink: #2B2016;
-  --ink-2: #4A3B2E;
-  --muted: #7A6A5C;
-  --line: #E7DCCB;
-  --line-2: #EFE6D6;
+  --bg: #F5F7F8;
+  --bg-2: #EAF0F4;
+  --surface: #FFFFFF;
+  --surface-2: #F2F6F8;
+  --ink: #10151B;
+  --ink-2: #2B3640;
+  --muted: #63717D;
+  --line: #DCE3E8;
+  --line-2: #E8EEF2;
 
-  --hot: #C67A3D;
-  --hot-deep: #8F4F24;
-  --hot-soft: #F3E1CC;
-  --hot-ink: #8A4A1F;
-  --cold: #2E6F63;
-  --cold-deep: #1C4B42;
-  --cold-soft: #DCEAE6;
-  --cold-ink: #1F5248;
-  --danger: #B5483A;
-  --danger-soft: #F6DDD7;
-  --sand: #D8B27C;
+  --hot: #F42367;
+  --hot-deep: #B90E45;
+  --hot-soft: #FFE0EB;
+  --hot-ink: #A30D3D;
+  --cold: #00AEEF;
+  --cold-deep: #007DA7;
+  --cold-soft: #DAF4FF;
+  --cold-ink: #006D91;
+  --danger: #E23C4A;
+  --danger-soft: #FFE1E4;
+  --sand: #AAB7C2;
 
-  --shadow-1: 0 1px 2px rgba(43, 32, 22, .05), 0 6px 18px -10px rgba(43, 32, 22, .16);
-  --shadow-2: 0 2px 4px rgba(43, 32, 22, .06), 0 18px 40px -18px rgba(43, 32, 22, .28);
-  --shadow-hot: 0 16px 34px -14px rgba(143, 79, 36, .55);
+  --shadow-1: 0 1px 2px rgba(16, 21, 27, .05), 0 8px 22px -12px rgba(16, 21, 27, .18);
+  --shadow-2: 0 2px 4px rgba(16, 21, 27, .07), 0 20px 44px -20px rgba(16, 21, 27, .30);
+  --shadow-hot: 0 16px 36px -16px rgba(0, 174, 239, .42);
 
   --r-sm: 12px;
   --r-md: 16px;
@@ -59,67 +59,67 @@
   --ease: cubic-bezier(.22, 1, .36, 1);
 
   /* رسومات الأجهزة (مستخرجة من PDF ومعاد تلوينها) */
-  --tile: #F2EADC;
-  --il-p: #C67A3D;
-  --il-p2: #9B5A26;
-  --il-p3: #D89A62;
-  --il-t: #2E6F63;
-  --il-m: #5A4A3C;
-  --il-m2: #3A2E24;
-  --il-g: #B9AA97;
-  --il-g2: #A29480;
-  --il-floor: #E3D7C4;
-  --il-floor2: #EBE1D0;
-  --il-mat: #93BDB2;
-  --il-screen: #A9D6CB;
-  --il-wave: #F4FBFA;
-  --il-water: #BBDAD5;
-  --il-water2: #8DBDB6;
+  --tile: #EAF2F6;
+  --il-p: #00AEEF;
+  --il-p2: #007DA7;
+  --il-p3: #55CCF8;
+  --il-t: #F42367;
+  --il-m: #34424D;
+  --il-m2: #1B242C;
+  --il-g: #93A2AE;
+  --il-g2: #71818D;
+  --il-floor: #DDE7ED;
+  --il-floor2: #E9F0F4;
+  --il-mat: #8BDDF9;
+  --il-screen: #79D8FA;
+  --il-wave: #F4FCFF;
+  --il-water: #A8E7FB;
+  --il-water2: #5BC9EE;
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #19120D;
-  --bg-2: #120C08;
-  --surface: #241A13;
-  --surface-2: #2C2018;
-  --ink: #F3E8D9;
-  --ink-2: #DDCFBD;
-  --muted: #B7A692;
-  --line: #392A20;
-  --line-2: #302319;
+  --bg: #0B0F13;
+  --bg-2: #070A0D;
+  --surface: #121820;
+  --surface-2: #19212A;
+  --ink: #F7FAFC;
+  --ink-2: #D6E0E7;
+  --muted: #9BAAB5;
+  --line: #27323C;
+  --line-2: #202A33;
 
-  --hot: #D28A4C;
-  --hot-deep: #A65F2B;
-  --hot-soft: rgba(198, 122, 61, .17);
-  --hot-ink: #E6A36A;
-  --cold: #3F8F7F;
-  --cold-deep: #1F5A4E;
-  --cold-soft: rgba(46, 111, 99, .22);
-  --cold-ink: #7FC4B4;
-  --danger: #E0796B;
-  --danger-soft: rgba(224, 121, 107, .16);
-  --sand: #C9A36B;
+  --hot: #FF2E73;
+  --hot-deep: #C41350;
+  --hot-soft: rgba(255,46,115,.16);
+  --hot-ink: #FF7AA6;
+  --cold: #19C2FF;
+  --cold-deep: #008FBF;
+  --cold-soft: rgba(25,194,255,.16);
+  --cold-ink: #75DCFF;
+  --danger: #FF5964;
+  --danger-soft: rgba(255,89,100,.16);
+  --sand: #81919D;
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px -10px rgba(0, 0, 0, .6);
   --shadow-2: 0 2px 4px rgba(0, 0, 0, .4), 0 18px 40px -18px rgba(0, 0, 0, .75);
   --shadow-hot: 0 16px 34px -14px rgba(0, 0, 0, .7);
 
-  --tile: #2E2218;
-  --il-p: #E0995A;
-  --il-p2: #B97A42;
-  --il-p3: #EDB27E;
-  --il-t: #4FA595;
-  --il-m: #9C8B78;
-  --il-m2: #7D6E5D;
-  --il-g: #5C4C3E;
-  --il-g2: #7A6A58;
-  --il-floor: #3D2F23;
-  --il-floor2: #34271C;
-  --il-mat: #3F7A6E;
-  --il-screen: #5FB0A0;
-  --il-wave: #A8D9CF;
-  --il-water: #1F4C46;
-  --il-water2: #2C6B62;
+  --tile: #151D24;
+  --il-p: #19C2FF;
+  --il-p2: #008FBF;
+  --il-p3: #66D8FF;
+  --il-t: #FF2E73;
+  --il-m: #A3B1BA;
+  --il-m2: #74828C;
+  --il-g: #44515B;
+  --il-g2: #667680;
+  --il-floor: #202A32;
+  --il-floor2: #182127;
+  --il-mat: #136E8E;
+  --il-screen: #32C9FF;
+  --il-wave: #BFEFFF;
+  --il-water: #0F526A;
+  --il-water2: #14779A;
 }

@@ -4,7 +4,7 @@
  */
 import { DAYS, PROGRAM_WEEKS, SUGGESTED_WEEKDAYS, WEEKLY_GOAL, phaseForWeek, type DayId, type PhaseDef } from '../data/program';
 import { addDaysISO, diffDaysISO, fromISO, hijriMonthLength, hijriOf, weekIndexBetween, weekStartOf, weekdayOf } from './dates';
-import type { Measurement, Session, Settings } from './types';
+import type { GymVisit, Measurement, Session, Settings } from './types';
 
 /** الجلسات التي تُحتسب ضمن هدف 4/4: الأساسية والمختصرة (لا الإضافية) */
 export const isCounted = (s: Session) => s.session_type === 'normal' || s.session_type === 'short';
@@ -42,6 +42,26 @@ export function weekInfo(sessions: Session[], weekStart: string): WeekInfo {
     count,
     complete: count >= WEEKLY_GOAL,
   };
+}
+
+/** حضور النادي مستقل تمامًا عن برنامج التمارين. هدف 4/4 = أربعة أيام حضور مختلفة من الأحد إلى السبت. */
+export interface AttendanceWeekInfo {
+  weekStart: string;
+  weekEnd: string;
+  visits: GymVisit[];
+  dates: string[];
+  count: number;
+  complete: boolean;
+}
+
+export function attendanceWeekInfo(visits: GymVisit[], weekStart: string): AttendanceWeekInfo {
+  const weekEnd = addDaysISO(weekStart, 6);
+  const inWeek = visits
+    .filter((v) => v.date >= weekStart && v.date <= weekEnd)
+    .sort((a, b) => a.arrived_at.localeCompare(b.arrived_at));
+  const dates = [...new Set(inWeek.map((v) => v.date))].sort();
+  const count = Math.min(WEEKLY_GOAL, dates.length);
+  return { weekStart, weekEnd, visits: inWeek, dates, count, complete: count >= WEEKLY_GOAL };
 }
 
 /** اليوم المقترح: أصغر يوم لم يُنجَز هذا الأسبوع، أو null إذا اكتملت الأيام الأربعة */

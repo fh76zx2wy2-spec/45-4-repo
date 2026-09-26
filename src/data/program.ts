@@ -505,7 +505,7 @@ const ABDULSALAM_DAYS: DayDef[] = [
     focus: 'صدر · ظهر · أكتاف · ترايسبس',
     subtitle: 'أوزان أثقل',
     kind: 'straight',
-    cardio: { machineId: 'elliptical', mode: 'steady', note: '15 دقيقة بإيقاع ثابت بعد الحديد (تستطيع الكلام بجمل قصيرة)' },
+    cardio: { machineId: 'elliptical', mode: 'steady', note: '15 دقيقة بإيقاع ثابت بعد الحديد (تستطيع الكلام بجمل قصيرة) · ويمكن بدلًا منه المشي الداخلي على السير 15 دقيقة بسرعة وميل مريحين' },
     ironSummary: '5 تمارين · 35 دقيقة',
     exercises: [
       { machineId: 'chest-press', sets: 3, reps: '8–10', rest: 90, phaseScaled: true },
@@ -522,7 +522,7 @@ const ABDULSALAM_DAYS: DayDef[] = [
     focus: 'فخذ · سمانة · بطن',
     subtitle: 'أوزان أثقل',
     kind: 'straight',
-    cardio: { machineId: 'bike', mode: 'steady', note: '15 دقيقة بإيقاع ثابت بعد الحديد (60–80 دورة/دقيقة)' },
+    cardio: { machineId: 'bike', mode: 'steady', note: '15 دقيقة بإيقاع ثابت بعد الحديد (60–80 دورة/دقيقة) · ويمكن بدلًا منه المشي الداخلي على السير 15 دقيقة بسرعة وميل مريحين' },
     ironSummary: '5 تمارين · 35 دقيقة',
     exercises: [
       { machineId: 'leg-press', sets: 3, reps: '10', rest: 90, phaseScaled: true },
@@ -539,7 +539,7 @@ const ABDULSALAM_DAYS: DayDef[] = [
     focus: 'ظهر · صدر · أكتاف · ذراعان',
     subtitle: 'تكرارات أكثر',
     kind: 'straight',
-    cardio: { machineId: 'elliptical', mode: 'intervals', note: '15 دقيقة: دقيقة أسرع + دقيقتان هادئتان، كرّرها بعد الحديد' },
+    cardio: { machineId: 'elliptical', mode: 'intervals', note: '15 دقيقة: دقيقة أسرع + دقيقتان هادئتان، كرّرها بعد الحديد · أو المشي الداخلي على السير 15 دقيقة كخيار مريح' },
     ironSummary: '5 تمارين · 35 دقيقة',
     exercises: [
       { machineId: 'lat-pulldown', sets: 3, reps: '12', rest: 60, phaseScaled: true },
@@ -556,7 +556,7 @@ const ABDULSALAM_DAYS: DayDef[] = [
     focus: 'مؤخرة · فخذ خلفي · بطن',
     subtitle: 'تكرارات أكثر',
     kind: 'straight',
-    cardio: { machineId: 'bike', mode: 'intervals', note: '15 دقيقة: دقيقة أسرع + دقيقتان هادئتان، أو 20 دقيقة سباحة هادئة' },
+    cardio: { machineId: 'bike', mode: 'intervals', note: '15 دقيقة: دقيقة أسرع + دقيقتان هادئتان، أو 20 دقيقة سباحة هادئة، أو المشي الداخلي على السير 15 دقيقة' },
     ironSummary: '5 تمارين · 35 دقيقة',
     exercises: [
       { machineId: 'leg-press', sets: 3, reps: '12–15', rest: 60, phaseScaled: true },

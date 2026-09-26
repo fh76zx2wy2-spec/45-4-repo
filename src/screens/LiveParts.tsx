@@ -26,7 +26,7 @@ import { Ring } from '../components/Ring';
 import { beep, vibrate } from '../lib/feedback';
 import { kgLabel, mmss, minutesLabel } from '../lib/format';
 import { DIFFICULTY_LABEL } from '../lib/format';
-import { weekInfo, currentWeekMessage } from '../lib/week';
+import { weekInfo } from '../lib/week';
 import { weekStartOf } from '../lib/dates';
 import { WEEKLY_GOAL } from '../data/program';
 
@@ -54,6 +54,7 @@ export function ExerciseStage({
   const m = MACHINES[stage.machineId as MachineId];
   const name = machineName(stage.machineId);
   const [altOpen, setAltOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const alts = alternativesFor(stage);
   const postpone = canPostpone(live);
   // 45/4 لا يطلب تسجيل أوزان الحديد؛ التركيز على إنجاز الجلسة فقط.
@@ -176,6 +177,11 @@ export function ExerciseStage({
               <b>تنبيه:</b> {m.warn}
             </div>
           )}
+          {m.guideYoutubeId && (
+            <button type="button" className="btn btn-ghost btn-block exercise-guide-btn" onClick={() => setGuideOpen(true)} style={{ marginTop: 12 }}>
+              <Icon name="play" /> طريقة استعمال الجهاز / أداء التمرين
+            </button>
+          )}
         </section>
       )}
 
@@ -205,6 +211,20 @@ export function ExerciseStage({
           </>
         )}
       </Sheet>
+
+      {m?.guideYoutubeId && (
+        <Sheet open={guideOpen} onClose={() => setGuideOpen(false)} title={m.guideTitle ?? `طريقة أداء ${m.ar}`}>
+          <div className="exercise-guide-frame">
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${m.guideYoutubeId}?playsinline=1&rel=0`}
+              title={m.guideTitle ?? `طريقة أداء ${m.ar}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+          <p className="muted" style={{ fontSize: 13.5, marginTop: 10 }}>شاهد الحركة داخل 45/4 ثم أغلق الشرح وأكمل تمرينك من نفس النقطة.</p>
+        </Sheet>
+      )}
     </div>
   );
 }
@@ -479,7 +499,6 @@ export function SavedScreen({
   const info = weekInfo(sessions, wk);
   const extra = session.session_type === 'extra';
   const complete = info.complete;
-  const msg = currentWeekMessage(info.count);
   const title = session.early_finish ? 'تم حفظ ما أنجزته ✓' : extra ? 'تمت الجلسة الإضافية ✓' : 'تمت جلسة اليوم ✓';
   const justCompleted = complete && countBefore < WEEKLY_GOAL && !extra;
   return (
@@ -489,22 +508,22 @@ export function SavedScreen({
         <h1 style={{ fontSize: 30 }}>{title}</h1>
         {!extra && (
           <div className="saved-count disp">
-            <span className="num">{info.count}/{WEEKLY_GOAL}</span> <span style={{ fontSize: 20 }}>هذا الأسبوع</span>
+            <span style={{ fontSize: 20 }}>أيام الخطة المنجزة: </span><span className="num">{info.count} من {WEEKLY_GOAL}</span>
           </div>
         )}
         {extra && (
           <div className="saved-count disp" style={{ fontSize: 26 }}>
-            {complete ? '4/4 ✓ + جلسة إضافية' : `${info.count}/${WEEKLY_GOAL} هذا الأسبوع`}
+            {complete ? 'أنهيت أيام الخطة الأربعة + جلسة إضافية' : `أيام الخطة المنجزة: ${info.count} من ${WEEKLY_GOAL}`}
           </div>
         )}
         <p className="muted" style={{ maxWidth: 320, margin: '6px auto 0' }}>
           {extra
-            ? 'الجلسة الإضافية لا تُحتسب ضمن 4/4، لكنها تُسجَّل في سجلك.'
+            ? 'الجلسة الإضافية تُسجَّل في سجل التمارين، بينما 4/4 في الرئيسية يعتمد على أيام حضور النادي.'
             : alreadyDone
-              ? 'هذا اليوم كان مكتملًا أصلًا هذا الأسبوع، لذا لم يزد العدّاد — لكن الجلسة محفوظة في السجل.'
+              ? 'هذا اليوم كان منجزًا أصلًا في خطة التمرين، لكن الجلسة الجديدة محفوظة في السجل.'
               : complete
-                ? 'اكتمل هدف الأسبوع ✓ — أحسنت!'
-                : msg.sub}
+                ? 'أنهيت أيام خطة التمرين الأربعة ✓ — و4/4 للحضور يُحسب مستقلًا في الرئيسية.'
+                : `تم حفظ التمرين · أنجزت ${info.count} من ${WEEKLY_GOAL} أيام الخطة المقترحة`}
         </p>
       </div>
       <button className="btn btn-primary btn-lg btn-block" onClick={onHome}>العودة للرئيسية</button>

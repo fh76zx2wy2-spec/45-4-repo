@@ -60,7 +60,7 @@ self.addEventListener('push', (event: any) => {
     icon: payload.icon || '/icons/icon-192.png',
     badge: payload.badge || '/icons/icon-192.png',
     tag: payload.tag || undefined,
-    data: { url: payload.data?.url || '/', ...(payload.data || {}) },
+    data: { url: payload.url || payload.data?.url || '/', ...(payload.data || {}) },
     actions: Array.isArray(payload.actions) ? payload.actions : undefined,
   };
   event.waitUntil(self.registration.showNotification(title, options));

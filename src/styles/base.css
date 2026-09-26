@@ -151,16 +151,16 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .btn svg { width: 22px; height: 22px; flex: none; }
 .btn-block { width: 100%; }
 .btn-lg { min-height: 60px; font-size: 19px; border-radius: 20px; }
-.btn-primary { background: var(--hot); color: #fff; box-shadow: 0 10px 22px -12px rgba(143, 79, 36, .7); }
-.btn-primary:hover { background: #B36A31; }
-.btn-teal { background: var(--cold); color: #fff; box-shadow: 0 10px 22px -12px rgba(28, 75, 66, .7); }
+.btn-primary { background: var(--hot); color: #fff; box-shadow: 0 10px 24px -12px rgba(244, 35, 103, .48); }
+.btn-primary:hover { background: var(--hot-deep); }
+.btn-teal { background: var(--cold); color: #fff; box-shadow: 0 10px 24px -12px rgba(0, 174, 239, .48); }
 .btn-dark { background: var(--ink); color: var(--bg); }
 .btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
 .btn-ghost:hover { border-color: var(--hot); }
 .btn-soft { background: var(--hot-soft); color: var(--hot-ink); }
 .btn-soft-cold { background: var(--cold-soft); color: var(--cold-ink); }
 .btn-danger { background: var(--danger-soft); color: var(--danger); }
-.btn-onhero { background: #FFFDF9; color: var(--hot-deep); box-shadow: 0 12px 26px -14px rgba(0, 0, 0, .55); }
+.btn-onhero { background: #FFFFFF; color: var(--hot-deep); box-shadow: 0 12px 26px -14px rgba(0, 0, 0, .55); }
 .btn-onhero-ghost { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .34); }
 .btn-sm { min-height: 44px; padding: 0 16px; font-size: 15px; border-radius: 14px; }
 .link-btn { color: var(--hot-ink); font-weight: 700; font-size: 15px; padding: 10px 6px; min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }

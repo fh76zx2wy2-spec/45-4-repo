@@ -5,6 +5,7 @@ import { consumeComeback, deleteGymVisit, getDB, saveSettings, saveSession, setL
 import { useDerived, shouldHintWeight } from '../lib/derived';
 import {
   addRest,
+  canUndoLastStep,
   clockElapsed,
   completeSet,
   completeTimedStage,
@@ -18,6 +19,7 @@ import {
   skipRest,
   skipStage,
   startClock,
+  undoLastStep,
 } from '../lib/live';
 import type { LiveSession, Session } from '../lib/types';
 import { beep, keepAwake, vibrate } from '../lib/feedback';
@@ -394,6 +396,14 @@ function LiveInner({ live, onSaved, onLeave }: { live: LiveSession; onSaved: (r:
 
       <main className={`live-body ${live.rest && live.phase === 'running' ? 'has-rest' : ''}`}>
         {body}
+        {canUndoLastStep(live) && live.phase === 'running' && !live.rest && (
+          <div className="center live-undo-step-wrap">
+            <button className="link-btn live-undo-step" onClick={() => upd(undoLastStep)}>
+              <Icon name="undo" size={18} /> تراجع عن آخر خطوة
+            </button>
+            <div className="muted" style={{ fontSize: 12 }}>يرجع الوقت السابق كما هو ولا يصفّره.</div>
+          </div>
+        )}
         {paused && !readyOpen && (
           <div className="pause-veil" role="status">
             <Icon name="pause" size={30} />

@@ -12,6 +12,9 @@ export interface Machine {
   ar: string;
   en: string;
   group: MachineGroup;
+  /** فيديو شرح قصير من مدرب رجل — يُفتح داخل 45/4 */
+  guideYoutubeId?: string;
+  guideTitle?: string;
   /** العضلات المستهدفة */
   muscles: string;
   /** طريقة الاستخدام (خطوات مختصرة) */
@@ -93,6 +96,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'ضغط الصدر',
     en: 'Chest Press',
     group: 'strength',
+    guideYoutubeId: 'xUm0BiZCWlQ',
+    guideTitle: 'طريقة استعمال جهاز ضغط الصدر',
     muscles: 'الصدر، مقدمة الكتف، الترايسبس',
     steps: [
       'اضبط الكرسي لتكون المقابض بمستوى منتصف صدرك.',
@@ -108,6 +113,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'السحب الأمامي (لات)',
     en: 'Lat Pulldown',
     group: 'strength',
+    guideYoutubeId: 'CAwf7n6Luuc',
+    guideTitle: 'طريقة أداء السحب العلوي',
     muscles: 'الظهر (الأجنحة) والبايسبس',
     steps: [
       'اجلس وثبّت فخذيك تحت الوسادة.',
@@ -123,6 +130,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'السحب الأرضي (تجديف)',
     en: 'Seated Row',
     group: 'strength',
+    guideYoutubeId: 'GZbfZ033f74',
+    guideTitle: 'طريقة أداء التجديف الجالس',
     muscles: 'منتصف الظهر والبايسبس',
     steps: [
       'صدرك على الوسادة وقدماك على المسند.',
@@ -138,6 +147,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'ضغط الأكتاف',
     en: 'Shoulder Press',
     group: 'strength',
+    guideYoutubeId: '3R14MnZbcpw',
+    guideTitle: 'طريقة أداء ضغط الكتف',
     muscles: 'الأكتاف والترايسبس',
     steps: [
       'اضبط الكرسي لتكون المقابض بمستوى كتفيك.',
@@ -153,6 +164,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'ضغط الأرجل (ليج برس)',
     en: 'Leg Press',
     group: 'strength',
+    guideYoutubeId: 'oujca3_Shgw',
+    guideTitle: 'طريقة استعمال جهاز ضغط الأرجل',
     muscles: 'الفخذ الأمامي والخلفي والمؤخرة',
     steps: [
       'ظهرك وحوضك ملتصقان بالمسند وقدماك على المنصة بعرض الكتفين.',
@@ -168,6 +181,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'الرفرفة الأمامية للأرجل',
     en: 'Leg Extension',
     group: 'strength',
+    guideYoutubeId: 'YyvSfVjQeL0',
+    guideTitle: 'طريقة استعمال جهاز تمديد الأرجل',
     muscles: 'الفخذ الأمامي',
     steps: [
       'ضع الوسادة فوق كاحليك وظهرك على المسند.',
@@ -183,6 +198,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'الأرجل الخلفية (ليج كيرل)',
     en: 'Seated Leg Curl',
     group: 'strength',
+    guideYoutubeId: 'ELOCsoDSmrg',
+    guideTitle: 'طريقة استعمال جهاز ثني الأرجل',
     muscles: 'الفخذ الخلفي',
     steps: [
       'ثبّت الوسادة العلوية فوق فخذيك.',
@@ -198,6 +215,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'رفع السمانة',
     en: 'Calf Raise',
     group: 'strength',
+    guideYoutubeId: 'ORT4oJ_R8Qs',
+    guideTitle: 'طريقة أداء رفع السمانة',
     muscles: 'عضلة السمانة (ربلة الساق)',
     steps: [
       'قف على حافة درجة أو استخدم منصة جهاز ضغط الأرجل، واجعل الكعبين حرّين للحركة.',
@@ -213,6 +232,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'الفراشة (بك ديك)',
     en: 'Pec Deck / Chest Fly',
     group: 'strength',
+    guideYoutubeId: 'aXDG2-Fy2Bg',
+    guideTitle: 'طريقة استعمال جهاز الفراشة',
     muscles: 'الصدر ومقدمة الكتف',
     steps: [
       'ضع ساعديك على الوسادتين ومرفقاك بمستوى الكتفين.',
@@ -228,6 +249,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'رفرفة جانبية بالدمبل',
     en: 'Dumbbell Lateral Raise',
     group: 'strength',
+    guideYoutubeId: '3VcKaXpzqRo',
+    guideTitle: 'طريقة أداء الرفع الجانبي',
     muscles: 'الجزء الجانبي من الكتف',
     steps: [
       'دمبل خفيف (2–5 كجم) في كل يد والمرفقان مثنيان قليلًا.',
@@ -243,6 +266,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'بايسبس بالدمبل',
     en: 'Dumbbell Biceps Curl',
     group: 'strength',
+    guideYoutubeId: 'sAq_ocpRh_I',
+    guideTitle: 'طريقة أداء تمرين البايسبس',
     muscles: 'الجزء الأمامي من الذراع',
     steps: [
       'قف والمرفقان ملتصقان بجانبك.',
@@ -258,6 +283,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'ترايسبس بالكيبل',
     en: 'Cable Triceps Pushdown',
     group: 'strength',
+    guideYoutubeId: '_w-HpW70nSQ',
+    guideTitle: 'طريقة أداء دفع الترايسبس',
     muscles: 'الجزء الخلفي من الذراع',
     steps: [
       'قف أمام البكرة العلوية وأمسك البار والمرفقان بجنبك.',
@@ -273,6 +300,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'بلانك (البطن)',
     en: 'Plank',
     group: 'core',
+    guideYoutubeId: 'fqzUlmyTpJk',
+    guideTitle: 'طريقة أداء البلانك',
     muscles: 'البطن والظهر والكتفان',
     steps: [
       'استند على ساعديك ومرفقاك تحت كتفيك.',
@@ -288,6 +317,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'جسر الحوض',
     en: 'Glute Bridge',
     group: 'core',
+    guideYoutubeId: '8bbE64NuDTU',
+    guideTitle: 'طريقة أداء Glute Bridge',
     muscles: 'المؤخرة والفخذ الخلفي',
     steps: [
       'استلقِ على ظهرك وركبتاك مثنيتان وقدماك على الأرض.',
@@ -303,6 +334,8 @@ export const MACHINES: Record<MachineId, Machine> = {
     ar: 'كرنش البطن',
     en: 'Crunch',
     group: 'core',
+    guideYoutubeId: 'NIqgTCTd2MM',
+    guideTitle: 'طريقة أداء الكرنش',
     muscles: 'عضلات البطن',
     steps: [
       'استلقِ وركبتاك مثنيتان ويداك بجانب أذنيك.',

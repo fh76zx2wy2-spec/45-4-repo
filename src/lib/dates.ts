@@ -187,3 +187,16 @@ export function sinceLabel(fromIso: string, toIso: string): string {
   if (n < 60) return `منذ ${w} أسابيع`;
   return `منذ ${Math.round(n / 30)} أشهر`;
 }
+
+
+/** وسم مختصر لآخر حضور: اليوم / أمس / قبل أمس، وإلا التاريخ الهجري بدون السنة. */
+export function attendanceDayLabel(arrivedAt: string, today: string = todayISO()): string {
+  const d = new Date(arrivedAt);
+  if (Number.isNaN(d.getTime())) return '';
+  const iso = todayISO(d);
+  const n = diffDaysISO(iso, today);
+  if (n <= 0) return 'اليوم';
+  if (n === 1) return 'أمس';
+  if (n === 2) return 'قبل أمس';
+  return formatHijri(iso, { year: false });
+}

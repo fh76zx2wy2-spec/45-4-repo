@@ -60,8 +60,8 @@ export default function Settings() {
   async function testPush() {
     setPushBusy(true);
     try {
-      await sendTestPush();
-      toast('أُرسل إشعار تجريبي — اقفل 45/4 وجرب');
+      const delivered = await sendTestPush();
+      toast(delivered > 0 ? 'أُرسل إشعار تجريبي حقيقي — يمكنك إغلاق 45/4 الآن' : 'لم نجد جهازًا مشتركًا بالإشعارات؛ اضغط تفعيل الإشعارات أولًا');
     } catch {
       toast('تعذر إرسال الإشعار التجريبي. تأكد أن Edge Function مفعّلة.');
     } finally {
@@ -125,9 +125,9 @@ export default function Settings() {
         {pushState === 'enabled' ? (
           <>
             <div className="note-box cold">
-              <b>لكل كوتش:</b> عند بلوغ مدة خطته، ثم تذكير خروج إذا بقيت الزيارة مفتوحة، وتحفيز بعد 4 أيام بدون زيارة.
+              <b>تنبيهات 45/4:</b> دخول رفيقك وخروجه، إكمال 4/4، التشجيعات بينكما، وتنبيهك عند 45 دقيقة ثم عند الساعة إذا بقيت الزيارة مفتوحة.
             </div>
-            <button className="btn btn-primary btn-block" disabled={pushBusy} onClick={() => void testPush()}><Icon name="bolt" /> أرسل لي إشعارًا تجريبيًا</button>
+            <button className="btn btn-primary btn-block" disabled={pushBusy} onClick={() => void testPush()}><Icon name="bolt" /> أرسل لي إشعارًا تجريبيًا حقيقيًا</button>
             <button className="btn btn-ghost btn-block" disabled={pushBusy} onClick={() => void turnOffPush()}>إيقاف إشعارات هذا الجهاز</button>
           </>
         ) : pushState === 'prompt' ? (
@@ -135,7 +135,10 @@ export default function Settings() {
         ) : pushState === 'denied' ? (
           <p className="muted" style={{ fontSize: 13 }}>اسمح بالإشعارات من إعدادات iPhone الخاصة بـ45/4 ثم ارجع لهذه الصفحة.</p>
         ) : (
-          <p className="muted" style={{ fontSize: 13 }}>هذا الجهاز أو طريقة فتح الموقع لا تدعم Web Push.</p>
+          <>
+            <p className="muted" style={{ fontSize: 13 }}>على iPhone افتح 45/4 من أيقونته في الشاشة الرئيسية، ثم اضغط «تحقق مرة أخرى».</p>
+            <button className="btn btn-primary btn-block" disabled={pushBusy} onClick={() => void turnOnPush()}><Icon name="bolt" /> تحقق مرة أخرى</button>
+          </>
         )}
       </section>
 

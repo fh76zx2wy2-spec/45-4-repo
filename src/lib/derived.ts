@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDB, defaultSettings } from './store';
 import { todayISO, weekStartOf } from './dates';
-import { computeStats, dayAdvice, isCounted, programPosition, suggestedDay, weekInfo } from './week';
+import { attendanceWeekInfo, computeStats, dayAdvice, isCounted, programPosition, suggestedDay, weekInfo } from './week';
 import type { Session } from './types';
 
 /** تاريخ اليوم (ISO) — يتحدّث تلقائيًا عند منتصف الليل أو العودة للتطبيق */
@@ -33,12 +33,13 @@ export function useDerived() {
     const weekStartDay = 0;
     const curWeekStart = weekStartOf(today, weekStartDay);
     const info = weekInfo(sessions, curWeekStart);
+    const attendanceInfo = attendanceWeekInfo(db?.visits ?? [], curWeekStart);
     const position = programPosition(settings, sessions, today);
     const trainedToday = sessions.some((s) => s.date === today && isCounted(s));
     const suggested = suggestedDay(info);
     const advice = dayAdvice(today, info, trainedToday, weekStartDay);
     const stats = computeStats(sessions, today, weekStartDay);
-    return { db, settings, sessions, today, weekStartDay, curWeekStart, info, position, trainedToday, suggested, advice, stats };
+    return { db, settings, sessions, today, weekStartDay, curWeekStart, info, attendanceInfo, position, trainedToday, suggested, advice, stats };
   }, [db, today]);
 }
 

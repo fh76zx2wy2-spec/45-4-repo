@@ -33,31 +33,31 @@ export function downloadGymSummaryCard(s: GymSummaryShare) {
   ctx.direction = 'rtl';
   ctx.textAlign = 'right';
   const bg = ctx.createLinearGradient(0, 0, 1080, 1350);
-  bg.addColorStop(0, '#FAF6EF');
-  bg.addColorStop(1, '#E5F0EC');
+  bg.addColorStop(0, '#F5F7F8');
+  bg.addColorStop(1, '#DAF4FF');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, 1080, 1350);
 
-  ctx.fillStyle = '#2E6F63';
+  ctx.fillStyle = '#10151B';
   ctx.beginPath();
   ctx.roundRect(90, 90, 900, 1170, 54);
   ctx.fill();
 
-  ctx.fillStyle = '#FFFDF9';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = '700 64px system-ui, -apple-system, sans-serif';
   ctx.fillText('45/4', 900, 205);
   ctx.font = '700 48px system-ui, -apple-system, sans-serif';
   ctx.fillText(`الكوتش / ${s.coach}`, 900, 310);
 
-  ctx.fillStyle = '#DCEAE6';
+  ctx.fillStyle = '#BDEEFF';
   ctx.font = '400 34px system-ui, -apple-system, sans-serif';
   ctx.fillText(s.dateLabel, 900, 372);
 
-  ctx.fillStyle = '#FFFDF9';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = '800 96px system-ui, -apple-system, sans-serif';
   ctx.fillText(s.durationLabel, 900, 560);
   ctx.font = '500 34px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = '#DCEAE6';
+  ctx.fillStyle = '#BDEEFF';
   ctx.fillText('وقت النادي', 900, 615);
 
   const rows: [string, string][] = [];
@@ -70,17 +70,17 @@ export function downloadGymSummaryCard(s: GymSummaryShare) {
     ctx.beginPath();
     ctx.roundRect(180, y - 78, 720, 104, 26);
     ctx.fill();
-    ctx.fillStyle = '#DCEAE6';
+    ctx.fillStyle = '#BDEEFF';
     ctx.font = '500 32px system-ui, -apple-system, sans-serif';
     ctx.fillText(label, 850, y - 12);
-    ctx.fillStyle = '#FFFDF9';
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
     ctx.font = '800 44px system-ui, -apple-system, sans-serif';
     ctx.fillText(value, 230, y - 12);
     ctx.textAlign = 'right';
   });
 
-  ctx.fillStyle = '#DCEAE6';
+  ctx.fillStyle = '#BDEEFF';
   ctx.font = '500 28px system-ui, -apple-system, sans-serif';
   ctx.fillText('جلسة واحدة أفضل من لا شيء.', 900, 1190);
 

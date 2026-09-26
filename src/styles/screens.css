@@ -296,21 +296,8 @@ details.card > summary::-webkit-details-marker { display: none; }
 .visit-detail-row .t { font-weight: 800; font-size: 14.5px; }
 .visit-detail-row .s { font-size: 12.8px; opacity: .85; }
 
-/* ============================ Apple Health ============================ */
-.apple-health-hero { overflow: hidden; }
-.apple-health-title { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1.3; }
-.apple-help { margin-top: 4px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 13.5px; line-height: 1.8; }
-.apple-health-list { display: flex; flex-direction: column; gap: 10px; }
-.apple-health-record { border: 1px solid var(--line); border-radius: 16px; padding: 13px; background: var(--surface-2); }
-.apple-health-record > .row-between > div > b { font-size: 15.5px; }
-.apple-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
-.apple-metrics > span { padding: 9px 10px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line-2); }
-.apple-metrics b { display: block; font-family: var(--font-display); font-size: 17px; line-height: 1.3; }
-.apple-metrics small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
-
 @media (max-width: 380px) {
   .home-head-actions .tag { display: none; }
-  .apple-optional .tag { display: none; }
   .gym-checkin-time { font-size: 27px; }
 }
 
@@ -458,7 +445,7 @@ details.card > summary::-webkit-details-marker { display: none; }
 .buddy-react-btn:disabled { opacity: .45; }
 
 .exit-summary-sheet { display: flex; flex-direction: column; gap: 12px; }
-.exit-summary-card { overflow: hidden; position: relative; padding: 22px 20px; border-radius: 24px; color: #fff; background: linear-gradient(145deg, #1F5248, #2E6F63 58%, #3C806F); box-shadow: 0 18px 44px -26px rgba(31,82,72,.9); }
+.exit-summary-card { overflow: hidden; position: relative; padding: 22px 20px; border-radius: 24px; color: #fff; background: linear-gradient(145deg, #0B0F13, #007DA7 55%, #00AEEF); box-shadow: 0 18px 44px -26px rgba(0,125,167,.72); }
 .exit-summary-card::after { content:''; position:absolute; width:170px; height:170px; border-radius:50%; top:-90px; inset-inline-start:-60px; background:rgba(255,255,255,.08); }
 .exit-summary-brand { font-weight: 900; direction:ltr; font-size: 16px; opacity: .88; }
 .exit-summary-coach { margin-top: 10px; font-family: var(--font-display); font-size: 25px; font-weight: 900; }
@@ -540,3 +527,11 @@ details.card > summary::-webkit-details-marker { display: none; }
 
 /* العبارة التحفيزية انتقلت إلى بوابة الدخول */
 .coach-copy { display:flex; flex-direction:column; justify-content:center; }
+
+
+/* 45/4 — تراجع سريع + فيديو شرح التمرين */
+.live-undo-step-wrap { margin-top: 2px; gap: 4px; }
+.live-undo-step { min-height: 42px; padding-inline: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.exercise-guide-btn { border-color: color-mix(in srgb, var(--cold) 38%, var(--line)); background: var(--cold-soft); color: var(--cold-ink); }
+.exercise-guide-frame { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-lg); background: #000; box-shadow: var(--shadow-1); }
+.exercise-guide-frame iframe { width: 100%; height: 100%; display: block; border: 0; }
