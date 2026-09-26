@@ -91,8 +91,13 @@ export default function App() {
   if (!configured) return <ConfigMissing />;
   if (status === 'loading') return <Splash />;
   if (status === 'signedOut') return <Login />;
-  if (!user || enteredFor !== user.id) return <EntryGate onEnter={() => setEnteredFor(user.id)} />;
-  return (
+if (!user) return null;
+
+const userId = user.id;
+
+if (enteredFor !== userId) {
+  return <EntryGate onEnter={() => setEnteredFor(userId)} />;
+}  return (
     <>
     <MiniPlayer />
     <Routes>
